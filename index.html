@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#14322a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Albaranes">
+<title>Control de Albaranes</title>
+<script src="config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<style>
+:root{
+  --bg:#f4f3ef; --surface:#fcfcfb; --ink:#0b0b0b; --ink2:#52514e; --muted:#8a8984; --line:#e4e2dc;
+  --brand:#14322a; --brand2:#1f5a49; --accent:#e8a33d; --accent-ink:#2b1b00;
+  --good:#0a7a3b; --bad:#c73b3a; --warn:#b26b00;
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100; --s5:#e87ba4; --s6:#008300; --s7:#6250d6; --s8:#e34948;
+  --r:14px; --nav:74px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+button,input,select,textarea{font:inherit;color:inherit}
+header{position:sticky;top:0;z-index:20;background:var(--brand);color:#fff;padding:calc(10px + env(safe-area-inset-top)) 16px 10px;display:flex;align-items:center;gap:10px}
+header h1{font-size:17px;margin:0;font-weight:650;letter-spacing:.2px;flex:1}
+header h1 small{display:block;font-size:11px;font-weight:400;opacity:.7}
+.live{display:flex;align-items:center;gap:6px;font-size:12px;opacity:.9}
+.dot{width:8px;height:8px;border-radius:50%;background:#7ee2a8;box-shadow:0 0 0 0 rgba(126,226,168,.7);animation:pulse 2s infinite}
+.dot.off{background:#aaa;animation:none}.dot.err{background:#ff7b7b;animation:none}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(126,226,168,.6)}70%{box-shadow:0 0 0 8px rgba(126,226,168,0)}100%{box-shadow:0 0 0 0 rgba(126,226,168,0)}}
+.hbtn{background:rgba(255,255,255,.12);border:0;color:#fff;border-radius:10px;padding:8px 10px;cursor:pointer;font-size:13px}
+main{max-width:1180px;margin:0 auto;padding:14px 14px calc(var(--nav) + 30px + env(safe-area-inset-bottom))}
+.tab{display:none}.tab.on{display:block}
+h2{font-size:20px;margin:6px 0 12px}
+h3{font-size:15px;margin:0 0 10px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px;margin-bottom:12px}
+.muted{color:var(--muted)}.small{font-size:12.5px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.grow{flex:1;min-width:0}
+.btn{border:0;border-radius:12px;padding:11px 16px;font-weight:600;cursor:pointer;background:var(--brand);color:#fff;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.btn.sec{background:#e9e7e0;color:var(--ink)}
+.btn.ghost{background:transparent;border:1px solid var(--line);color:var(--ink)}
+.btn.danger{background:#fbe9e8;color:var(--bad)}
+.btn.sm{padding:7px 11px;font-size:13px;border-radius:10px}
+.btn:disabled{opacity:.5}
+label.f{display:block;font-size:12px;color:var(--ink2);margin-bottom:3px;font-weight:600}
+input,select,textarea{width:100%;border:1px solid var(--line);border-radius:10px;padding:10px 11px;background:#fff;min-height:42px}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--brand2);border-color:transparent}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+@media(max-width:560px){.grid3{grid-template-columns:1fr 1fr}}
+.banner{background:#fff5df;border:1px solid #f1d9a6;color:#5a3d00;border-radius:12px;padding:10px 12px;font-size:13px;margin-bottom:12px}
+.banner.err{background:#fdecec;border-color:#f3c3c3;color:#7a1f1f}
+
+/* ===== ESCANEAR ===== */
+.scan-hero{background:linear-gradient(160deg,var(--brand) 0%,var(--brand2) 100%);color:#fff;border-radius:22px;padding:20px 18px;margin-bottom:14px}
+.scan-hero label.f{color:#cfe3da}
+.scan-hero select{background:#fff;color:var(--ink);font-weight:600;font-size:16px}
+.bigshot{margin-top:16px;width:100%;min-height:190px;border:0;border-radius:20px;background:var(--accent);color:var(--accent-ink);font-size:22px;font-weight:800;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;cursor:pointer;box-shadow:0 10px 24px rgba(0,0,0,.25),inset 0 -4px 0 rgba(0,0,0,.12)}
+.bigshot:active{transform:translateY(2px)}
+.bigshot svg{width:64px;height:64px}
+.bigshot span{font-size:13px;font-weight:600;opacity:.75}
+.scan-alt{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+.scan-alt .btn{background:rgba(255,255,255,.14);color:#fff;padding:13px}
+.thumbs{display:flex;gap:10px;overflow-x:auto;padding:4px 0}
+.thumb{position:relative;flex:0 0 auto}
+.thumb img{width:96px;height:128px;object-fit:cover;border-radius:10px;border:2px solid #fff}
+.thumb button{position:absolute;top:-6px;right:-6px;width:26px;height:26px;border-radius:50%;border:0;background:var(--bad);color:#fff;font-weight:700}
+.process{width:100%;margin-top:12px;padding:16px;font-size:17px;background:#fff;color:var(--brand);border-radius:14px}
+.spinner{width:42px;height:42px;border:4px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin 1s linear infinite;margin:10px auto}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ===== LISTAS ===== */
+.list{display:flex;flex-direction:column;gap:8px}
+.item{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;gap:12px;align-items:center;cursor:pointer}
+.item:hover{border-color:#c9c6bd}
+.item .t{font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item .amt{font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.pill{display:inline-block;font-size:11px;padding:2px 8px;border-radius:99px;background:#eceae3;color:var(--ink2);font-weight:600;margin-right:4px}
+.up{color:var(--bad);font-weight:700}.down{color:var(--good);font-weight:700}
+.tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th,td{padding:9px 10px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+th{background:#f3f2ed;font-size:12px;color:var(--ink2);position:sticky;top:0;cursor:pointer;user-select:none}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+tr.click{cursor:pointer}tr.click:hover td{background:#f8f7f3}
+
+/* ===== ANÁLISIS ===== */
+.filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.presets{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.presets button{border:1px solid var(--line);background:#fff;border-radius:99px;padding:6px 12px;font-size:13px;cursor:pointer}
+.presets button.on{background:var(--brand);color:#fff;border-color:var(--brand)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:12px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px}
+.kpi .l{font-size:12px;color:var(--ink2);font-weight:600}
+.kpi .v{font-size:24px;font-weight:750;font-variant-numeric:tabular-nums;margin-top:2px}
+.kpi .d{font-size:12px;color:var(--muted)}
+.charts{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:860px){.charts{grid-template-columns:1fr}}
+.chart-box{position:relative;height:290px}
+
+/* ===== NAV ===== */
+nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+nav .in{max-width:620px;margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr);height:var(--nav);align-items:end}
+nav button{border:0;background:none;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;color:var(--muted);padding:8px 0 10px;cursor:pointer;font-weight:600}
+nav button svg{width:24px;height:24px}
+nav button.on{color:var(--brand)}
+nav button.scan{position:relative}
+nav button.scan .circle{width:66px;height:66px;margin-top:-30px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:flex;align-items:center;justify-content:center;box-shadow:0 6px 16px rgba(0,0,0,.25);border:4px solid var(--surface)}
+nav button.scan .circle svg{width:32px;height:32px}
+nav button.scan{color:var(--ink)}
+
+/* ===== MODAL ===== */
+.modal{position:fixed;inset:0;z-index:50;background:rgba(10,20,16,.5);display:none;align-items:flex-end;justify-content:center}
+.modal.on{display:flex}
+.sheet{background:var(--bg);width:100%;max-width:820px;max-height:94vh;overflow:auto;border-radius:20px 20px 0 0;padding:0 0 calc(20px + env(safe-area-inset-bottom))}
+@media(min-width:860px){.modal{align-items:center}.sheet{border-radius:20px}}
+.sheet-h{position:sticky;top:0;z-index:2;background:var(--bg);padding:14px 16px 10px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--line)}
+.sheet-h h3{flex:1;margin:0;font-size:17px}
+.sheet-b{padding:14px 16px}
+.x{border:0;background:#e9e7e0;width:36px;height:36px;border-radius:50%;font-size:18px;cursor:pointer}
+.line{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px;margin-bottom:8px}
+.line .grid4{display:grid;grid-template-columns:1fr .8fr 1fr 1fr .7fr;gap:6px;margin-top:6px}
+@media(max-width:560px){.line .grid4{grid-template-columns:1fr 1fr 1fr}}
+.line input,.line select{min-height:38px;padding:7px 8px;font-size:14px}
+.line .mini{font-size:10.5px;color:var(--muted);font-weight:600;margin-bottom:1px}
+.photos a img{height:110px;border-radius:8px;border:1px solid var(--line)}
+.toast{position:fixed;left:50%;bottom:calc(var(--nav) + 24px);transform:translateX(-50%);background:var(--ink);color:#fff;padding:11px 18px;border-radius:12px;z-index:80;font-size:14px;display:none;max-width:90vw}
+.empty{text-align:center;color:var(--muted);padding:30px 10px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--ink2);margin-top:8px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Control de Albaranes<small id="subt">Grupo · gastos y producto</small></h1>
+  <div class="live" title="Sincronización"><span class="dot off" id="liveDot"></span><span id="liveTxt">—</span></div>
+  <button class="hbtn" onclick="openExport()" title="Descargar base de datos">⬇︎ BD</button>
+</header>
+
+<main>
+  <div id="setupBanner" class="banner" style="display:none">
+    <b>App sin conectar.</b> Pega la URL del Apps Script y la clave de acceso en <a href="#" onclick="go('ajustes');return false">⚙ Ajustes</a> para empezar a guardar albaranes en Google Drive.
+  </div>
+  <div id="errBanner" class="banner err" style="display:none"></div>
+
+  <!-- ============ ESCANEAR ============ -->
+  <section class="tab on" id="t-escanear">
+    <div class="scan-hero">
+      <label class="f">LOCAL QUE RECIBE LA MERCANCÍA</label>
+      <select id="scanLocal" onchange="localStorage.scanLocal=this.value"></select>
+
+      <div id="scanStart">
+        <button class="bigshot" onclick="$('#camInput').click()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          ESCANEAR ALBARÁN
+          <span>Haz una foto del albarán o ticket</span>
+        </button>
+        <div class="scan-alt">
+          <button class="btn" onclick="$('#galInput').click()">🖼 Subir de galería</button>
+          <button class="btn" onclick="openReview({}, [])">✍️ Introducir a mano</button>
+        </div>
+      </div>
+
+      <div id="scanPhotos" style="display:none;margin-top:16px">
+        <div class="row"><b class="grow">Páginas del documento</b><span class="small" id="nPhotos"></span></div>
+        <div class="thumbs" id="thumbs"></div>
+        <div class="banner" id="photoWarn" style="display:none;margin:8px 0 0"></div>
+        <div class="scan-alt">
+          <button class="btn" onclick="$('#camInput').click()">📷 Añadir página</button>
+          <button class="btn" onclick="resetScan()">✕ Cancelar</button>
+        </div>
+        <button class="btn process" onclick="processScan()">⚡ Leer albarán con IA</button>
+      </div>
+
+      <div id="scanBusy" style="display:none;text-align:center;padding:24px 0">
+        <div class="spinner"></div>
+        <b>Leyendo el albarán…</b><div class="small" style="opacity:.8">Guardando foto en Drive y extrayendo productos y precios</div>
+      </div>
+
+      <input type="file" id="camInput" accept="image/*" capture="environment" hidden onchange="addPhotos(this.files);this.value=''">
+      <input type="file" id="galInput" accept="image/*" multiple hidden onchange="addPhotos(this.files);this.value=''">
+    </div>
+
+    <div class="card" id="pendCard" style="display:none;border-color:#f1d9a6;background:#fffaf0">
+      <div class="row"><div class="grow"><b id="pendTxt"></b><div class="small muted">Albaranes poco legibles guardados para revisar con la foto</div></div>
+      <button class="btn sm" onclick="$('#aEstado').value='Revisar';go('albaranes')">Revisar</button></div>
+    </div>
+
+    <details class="card tips">
+      <summary><b>📸 Consejos para que la IA lea bien</b></summary>
+      <ul class="small">
+        <li>Pon el albarán <b>plano</b> sobre una mesa (sin pliegues) y con <b>buena luz</b>, sin la sombra del móvil.</li>
+        <li>Que salga <b>entero</b>, de frente y llenando la pantalla. Si es largo, haz <b>una foto por trozo</b> con "Añadir página".</li>
+        <li>Los <b>tickets térmicos</b> se borran con el tiempo: escanéalos el mismo día.</li>
+        <li>Si algo está escrito a mano o no se lee, la IA lo marca en <span class="lowtag">amarillo</span> para que lo compruebes con la foto.</li>
+        <li>Cada vez que corriges y guardas, <b>la app aprende</b> cómo escribe ese proveedor sus productos y la próxima vez lo lee mejor.</li>
+      </ul>
+    </details>
+
+    <div class="card">
+      <div class="row"><h3 class="grow" style="margin:0">Últimos registrados</h3><button class="btn sm ghost" onclick="go('albaranes')">Ver todos</button></div>
+      <div class="list" id="recentList" style="margin-top:10px"></div>
+    </div>
+  </section>
+
+  <!-- ============ ALBARANES ============ -->
+  <section class="tab" id="t-albaranes">
+    <h2>Albaranes</h2>
+    <div class="card">
+      <div class="grid3">
+        <div style="grid-column:span 2"><input id="aSearch" placeholder="Buscar proveedor, nº, producto…" oninput="renderAlbaranes()"></div>
+        <select id="aLocal" onchange="renderAlbaranes()"></select>
+        <input type="date" id="aDesde" onchange="renderAlbaranes()">
+        <input type="date" id="aHasta" onchange="renderAlbaranes()">
+        <select id="aTipo" onchange="renderAlbaranes()"><option value="">Todos los tipos</option><option>Albarán</option><option>Ticket</option><option>Factura</option></select>
+      </div>
+      <div class="row small muted" style="margin-top:8px"><span id="aCount" class="grow"></span><button class="btn sm ghost" onclick="exportAlbaranesFiltrados()">⬇︎ Excel de esta lista</button></div>
+    </div>
+    <div class="list" id="aList"></div>
+  </section>
+
+  <!-- ============ PRODUCTOS ============ -->
+  <section class="tab" id="t-productos">
+    <h2>Productos</h2>
+    <div class="card">
+      <div class="grid3">
+        <div style="grid-column:span 2"><input id="pSearch" placeholder="Buscar producto o proveedor…" oninput="renderProductos()"></div>
+        <select id="pCat" onchange="renderProductos()"></select>
+        <select id="pLocal" onchange="renderProductos()"></select>
+        <select id="pOrden" onchange="renderProductos()">
+          <option value="var">Ordenar: mayor subida de precio</option>
+          <option value="gasto">Ordenar: más gasto</option>
+          <option value="compras">Ordenar: más compras</option>
+          <option value="nombre">Ordenar: nombre</option>
+          <option value="recent">Ordenar: compra más reciente</option>
+        </select>
+        <label class="row small" style="gap:6px"><input type="checkbox" id="pSoloVar" style="width:auto;min-height:0" onchange="renderProductos()"> Solo con variación de precio</label>
+      </div>
+      <div class="small muted" style="margin-top:8px" id="pCount"></div>
+    </div>
+    <div class="tbl-wrap"><table id="pTable"></table></div>
+  </section>
+
+  <!-- ============ ANÁLISIS ============ -->
+  <section class="tab" id="t-analisis">
+    <h2>Análisis</h2>
+    <div class="card">
+      <div class="filters">
+        <div><label class="f">Desde</label><input type="date" id="fDesde" onchange="clearPreset();renderAnalisis()"></div>
+        <div><label class="f">Hasta</label><input type="date" id="fHasta" onchange="clearPreset();renderAnalisis()"></div>
+        <div><label class="f">Local</label><select id="fLocal" onchange="renderAnalisis()"></select></div>
+        <div><label class="f">Proveedor</label><select id="fProv" onchange="renderAnalisis()"></select></div>
+        <div><label class="f">Categoría</label><select id="fCat" onchange="renderAnalisis()"></select></div>
+        <div><label class="f">Alerta precio ≥ %</label><input type="number" id="fUmbral" min="0" step="1" onchange="renderAnalisis()"></div>
+      </div>
+      <div class="presets" id="presets">
+        <button data-p="mes">Este mes</button><button data-p="mesant">Mes anterior</button>
+        <button data-p="30">Últimos 30 días</button><button data-p="90">Últimos 3 meses</button>
+        <button data-p="anio">Este año</button><button data-p="todo">Todo</button>
+        <button style="margin-left:auto" onclick="exportAnalisis()">⬇︎ Descargar análisis</button>
+      </div>
+    </div>
+
+    <div class="kpis" id="kpis"></div>
+
+    <div class="charts">
+      <div class="card"><h3>Gasto mensual por local <span class="muted small">(total con IVA)</span></h3><div class="chart-box"><canvas id="chMes"></canvas></div></div>
+      <div class="card"><h3>Proveedores con más gasto <span class="muted small">(con IVA)</span></h3><div class="chart-box"><canvas id="chProv"></canvas></div></div>
+      <div class="card"><h3>Gasto por categoría <span class="muted small">(líneas, sin IVA)</span></h3><div class="chart-box"><canvas id="chCat"></canvas></div></div>
+      <div class="card"><h3>Gasto por local <span class="muted small">(con IVA)</span></h3><div class="chart-box"><canvas id="chLocal"></canvas></div></div>
+    </div>
+
+    <div class="card">
+      <h3>⚠️ Variaciones de precio <span class="muted small">— frente a la compra anterior al mismo proveedor</span></h3>
+      <div class="tbl-wrap"><table id="alertTable"></table></div>
+    </div>
+    <div class="card">
+      <h3>Productos con más gasto</h3>
+      <div class="tbl-wrap"><table id="topTable"></table></div>
+    </div>
+  </section>
+
+  <!-- ============ AJUSTES ============ -->
+  <section class="tab" id="t-ajustes">
+    <h2>Ajustes y datos</h2>
+    <div class="card">
+      <h3>⬇︎ Descargar base de datos</h3>
+      <p class="small muted" style="margin-top:0">Excel con todas las pestañas (albaranes, líneas, resumen de productos) o CSV.</p>
+      <div class="row">
+        <button class="btn" onclick="exportExcel()">Excel completo (.xlsx)</button>
+        <button class="btn sec" onclick="exportCSV('albaranes')">CSV albaranes</button>
+        <button class="btn sec" onclick="exportCSV('lineas')">CSV líneas</button>
+        <a class="btn ghost" id="sheetLink" target="_blank" style="text-decoration:none;display:none">Abrir en Google Sheets ↗</a>
+        <a class="btn ghost" id="folderLink" target="_blank" style="text-decoration:none;display:none">Carpeta de Drive ↗</a>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Conexión con Google Drive</h3>
+      <label class="f">URL de la Aplicación web (Apps Script, termina en /exec)</label>
+      <input id="cfgUrl" placeholder="https://script.google.com/macros/s/…/exec">
+      <div style="height:10px"></div>
+      <label class="f">Clave de acceso (la muestra setup() al instalar)</label>
+      <input id="cfgKey" placeholder="clave" autocomplete="off">
+      <div class="row" style="margin-top:12px">
+        <button class="btn" onclick="saveCfg()">Guardar y conectar</button>
+      </div>
+      <p class="small muted">La clave se guarda solo en este dispositivo. En iPhone/Android: menú del navegador → <b>Añadir a pantalla de inicio</b> para usarla como una app.</p>
+    </div>
+  </section>
+</main>
+
+<nav><div class="in">
+  <button data-t="albaranes" onclick="go('albaranes')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h6"/></svg>Albaranes</button>
+  <button data-t="productos" onclick="go('productos')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="M3.3 7 12 12l8.7-5M12 22V12"/></svg>Productos</button>
+  <button data-t="escanear" class="scan on" onclick="go('escanear')"><span class="circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></span>Escanear</button>
+  <button data-t="analisis" onclick="go('analisis')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 16v-4M12 16V8M17 16v-7"/></svg>Análisis</button>
+  <button data-t="ajustes" onclick="go('ajustes')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Ajustes</button>
+</div></nav>
+
+<div class="modal" id="modal" onclick="if(event.target===this)closeModal()"><div class="sheet" id="sheet"></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ===================== UTILIDADES ===================== */
+const $ = s => document.querySelector(s);
+const CFG0 = window.APP_CONFIG || {};
+const CFG = {
+  get url(){ return localStorage.apiUrl || CFG0.apiUrl || '' },
+  get key(){ return localStorage.apiKey || '' },
+  get ready(){ return !!this.url },
+  refresco: (CFG0.refrescoSegundos || 20) * 1000,
+  umbral: CFG0.umbralAlertaPct ?? 5
+};
+const SERIES = ['--s1','--s2','--s3','--s4','--s5','--s6','--s7','--s8'].map(v => getComputedStyle(document.documentElement).getPropertyValue(v).trim());
+const DEFAULT_LOCALES = ['Explotaciones de Hostelería Caleta','Santo y Seña Gestión','El Santo Gestión','St3','Somos de Santoña','Alibio Gestión'];
+const DEFAULT_CATS = ['Pescado y marisco','Carne','Frutas y verduras','Lácteos y huevos','Panadería y bollería','Alimentación seca','Congelados','Bebidas','Vinos y licores','Café e infusiones','Limpieza','Menaje y desechables','Mantenimiento','Otros'];
+
+const eur = n => (isFinite(n) ? n : 0).toLocaleString('es-ES',{style:'currency',currency:'EUR'});
+const eur4 = n => (isFinite(n) ? n : 0).toLocaleString('es-ES',{style:'currency',currency:'EUR',minimumFractionDigits:2,maximumFractionDigits:4});
+const num = (n,d=2) => (isFinite(n) ? n : 0).toLocaleString('es-ES',{maximumFractionDigits:d});
+const pct = n => (n>0?'+':'') + num(n*100,1) + ' %';
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const iso = d => { const x = new Date(d.getTime() - d.getTimezoneOffset()*60000); return x.toISOString().slice(0,10) };
+const fdate = s => s ? s.slice(0,10).split('-').reverse().join('/') : '—';
+function pnum(v){
+  if (v === null || v === undefined || v === '') return null;
+  if (typeof v === 'number') return v;
+  let s = String(v).replace(/[€\s]/g,'');
+  if (s.includes(',') && s.includes('.')) s = s.lastIndexOf(',') > s.lastIndexOf('.') ? s.replace(/\./g,'').replace(',','.') : s.replace(/,/g,'');
+  else s = s.replace(',','.');
+  const n = parseFloat(s); return isFinite(n) ? n : null;
+}
+const norm = s => String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
+const pkey = l => (l.producto_norm || norm(l.producto)) + '|' + norm(l.unidad || 'ud');
+function toast(msg, ms=2600){ const t=$('#toast'); t.textContent=msg; t.style.display='block'; clearTimeout(t._h); t._h=setTimeout(()=>t.style.display='none', ms) }
+function opts(sel, arr, first){ sel.innerHTML = (first?`<option value="">${esc(first)}</option>`:'') + arr.map(x=>`<option>${esc(x)}</option>`).join('') }
+function keepOpts(sel, arr, first){ const v = sel.value; opts(sel, arr, first); if ([...sel.options].some(o=>o.value===v)) sel.value = v }
+
+/* ===================== DATOS ===================== */
+let DB = { albaranes:[], lineas:[], locales:DEFAULT_LOCALES, categorias:DEFAULT_CATS, sheetUrl:'', folderUrl:'', version:'' };
+let PROD = new Map();   // clave producto -> agregados
+
+async function apiGet(action){
+  const u = new URL(CFG.url); u.searchParams.set('action',action); u.searchParams.set('key',CFG.key);
+  const r = await fetch(u, {redirect:'follow'}); const j = await r.json();
+  if (!j.ok) throw new Error(j.error || 'Error del servidor'); return j;
+}
+async function apiPost(body){
+  const r = await fetch(CFG.url, {method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body:JSON.stringify({...body, key:CFG.key}), redirect:'follow'});
+  const j = await r.json(); if (!j.ok) throw new Error(j.error || 'Error del servidor'); return j;
+}
+
+function setLive(state, txt){ const d=$('#liveDot'); d.className = 'dot' + (state==='ok'?'':state==='err'?' err':' off'); $('#liveTxt').textContent = txt }
+
+async function loadData(silent){
+  try{
+    if (!CFG.ready){ setLive('off','Sin conectar') }
+    else {
+      const j = await apiGet('data');
+      DB = { ...j, locales: j.locales?.length ? j.locales : DEFAULT_LOCALES, categorias: j.categorias || DEFAULT_CATS };
+      setLive('ok', 'En vivo · ' + new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}));
+    }
+    DB.albaranes.forEach(a => { a.total = pnum(a.total)||0; a.base = pnum(a.base); a.iva = pnum(a.iva) });
+    DB.lineas.forEach(l => { ['cantidad','precio_unitario','descuento','importe'].forEach(k => l[k] = pnum(l[k])); if (!l.producto_norm) l.producto_norm = norm(l.producto) });
+    $('#errBanner').style.display='none';
+    buildProducts(); fillSelects(); renderAll();
+  }catch(e){
+    setLive('err','Sin conexión'); if (!silent){ const b=$('#errBanner'); b.innerHTML='<b>No se pudo conectar:</b> '+esc(e.message)+' — revisa ⚙ Ajustes.'; b.style.display='block' }
+  }
+}
+
+let pollTimer;
+function startPolling(){
+  clearInterval(pollTimer);
+  if (!CFG.ready) return;
+  pollTimer = setInterval(async () => {
+    if (document.hidden) return;
+    try{
+      const v = await apiGet('version');
+      if (v.version !== DB.version){ await loadData(true); toast('🔄 Datos actualizados') }
+      else setLive('ok','En vivo · ' + new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}));
+    }catch(e){ setLive('err','Reconectando…') }
+  }, CFG.refresco);
+}
+document.addEventListener('visibilitychange', () => { if (!document.hidden && CFG.ready) loadData(true) });
+
+/* ===================== PRODUCTOS (agregación) ===================== */
+function buildProducts(){
+  PROD = new Map();
+  const lines = DB.lineas.filter(l => l.producto && l.precio_unitario > 0).slice().sort((a,b) => (a.fecha||'').localeCompare(b.fecha||''));
+  for (const l of lines){
+    const k = pkey(l);
+    if (!PROD.has(k)) PROD.set(k, { key:k, nombre:l.producto, categoria:l.categoria||'Otros', unidad:l.unidad||'ud', compras:[] });
+    const p = PROD.get(k); p.nombre = l.producto; if (l.categoria) p.categoria = l.categoria;
+    p.compras.push(l);
+  }
+  for (const p of PROD.values()) statsProduct(p, p.compras);
+}
+function statsProduct(p, compras){
+  const c = compras; const n = c.length;
+  p.n = n; p.last = c[n-1]; p.lastPrice = p.last?.precio_unitario ?? null;
+  // compra anterior del mismo proveedor que la última
+  const prevSame = [...c.slice(0,-1)].reverse().find(x => norm(x.proveedor) === norm(p.last?.proveedor));
+  p.prevPrice = prevSame ? prevSame.precio_unitario : null;
+  p.var = (p.prevPrice && p.lastPrice) ? (p.lastPrice - p.prevPrice) / p.prevPrice : null;
+  const prices = c.map(x => x.precio_unitario);
+  p.min = Math.min(...prices); p.max = Math.max(...prices);
+  const q = c.reduce((s,x) => s + (x.cantidad||0), 0);
+  p.gasto = c.reduce((s,x) => s + (x.importe ?? (x.cantidad||0)*(x.precio_unitario||0)), 0);
+  p.qty = q; p.avg = q ? p.gasto / q : prices.reduce((a,b)=>a+b,0)/n;
+  p.proveedores = [...new Set(c.map(x => x.proveedor))];
+  p.locales = [...new Set(c.map(x => x.local))];
+  return p;
+}
+function lastPriceFor(producto, unidad, proveedor){
+  const p = PROD.get(norm(producto) + '|' + norm(unidad||'ud')); if (!p) return null;
+  const same = [...p.compras].reverse().find(x => norm(x.proveedor) === norm(proveedor));
+  return same || p.compras[p.compras.length-1];
+}
+
+/* ===================== NAVEGACIÓN ===================== */
+function go(t){
+  document.querySelectorAll('.tab').forEach(s => s.classList.toggle('on', s.id === 't-'+t));
+  document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b.dataset.t === t));
+  localStorage.tab = t; window.scrollTo(0,0); renderTab(t);
+}
+function renderTab(t){ ({escanear:renderRecent, albaranes:renderAlbaranes, productos:renderProductos, analisis:renderAnalisis, ajustes:renderAjustes}[t]||(()=>{}))() }
+function renderAll(){ renderRecent(); renderTab(localStorage.tab || 'escanear'); $('#setupBanner').style.display = CFG.ready ? 'none' : 'block' }
+
+function fillSelects(){
+  const loc = $('#scanLocal'); keepOpts(loc, DB.locales);
+  if (localStorage.scanLocal && DB.locales.includes(localStorage.scanLocal)) loc.value = localStorage.scanLocal;
+  ['#aLocal','#pLocal','#fLocal'].forEach(s => keepOpts($(s), DB.locales, 'Todos los locales'));
+  const cats = [...new Set([...DB.categorias, ...DB.lineas.map(l=>l.categoria).filter(Boolean)])];
+  ['#pCat','#fCat'].forEach(s => keepOpts($(s), cats, 'Todas las categorías'));
+  const provs = [...new Set(DB.albaranes.map(a=>a.proveedor).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es'));
+  keepOpts($('#fProv'), provs, 'Todos los proveedores');
+}
+
+/* ===================== ESCANEAR ===================== */
+let photos = []; // {data, mimeType, url}
+async function addPhotos(files){
+  for (const f of files){ try{ photos.push(await compress(f)) }catch(e){ toast('No se pudo leer la imagen') } }
+  renderPhotos();
+}
+function compress(file){
+  return new Promise((res, rej) => {
+    const img = new Image(); const u = URL.createObjectURL(file);
+    img.onload = () => {
+      // Resolución alta: los albaranes poco legibles necesitan detalle
+      const max = 2600; let {width:w, height:h} = img; const s = Math.min(1, max / Math.max(w,h));
+      w = Math.round(w*s); h = Math.round(h*s);
+      const c = document.createElement('canvas'); c.width=w; c.height=h; c.getContext('2d').drawImage(img,0,0,w,h);
+      const url = c.toDataURL('image/jpeg', .9); URL.revokeObjectURL(u);
+      res({ url, data:url.split(',')[1], mimeType:'image/jpeg', calidad: calidadFoto(img) });
+    };
+    img.onerror = rej; img.src = u;
+  });
+}
+/** Comprueba luz y nitidez de la foto (en una copia pequeña) para avisar antes de enviarla. */
+function calidadFoto(img){
+  const W = 500, s = W / Math.max(img.width, img.height), w = Math.round(img.width*s), h = Math.round(img.height*s);
+  const c = document.createElement('canvas'); c.width = w; c.height = h; const x = c.getContext('2d'); x.drawImage(img,0,0,w,h);
+  const d = x.getImageData(0,0,w,h).data, g = new Float32Array(w*h); let sum = 0;
+  for (let i = 0; i < w*h; i++){ g[i] = .299*d[i*4] + .587*d[i*4+1] + .114*d[i*4+2]; sum += g[i] }
+  const brillo = sum / (w*h);
+  let m = 0, m2 = 0, n = 0;
+  for (let y = 1; y < h-1; y++) for (let xx = 1; xx < w-1; xx++){
+    const i = y*w + xx, L = 4*g[i] - g[i-1] - g[i+1] - g[i-w] - g[i+w]; m += L; m2 += L*L; n++;
+  }
+  const nitidez = m2/n - (m/n)**2;
+  const avisos = [];
+  if (brillo < 70) avisos.push('oscura');
+  if (brillo > 235) avisos.push('quemada por el flash o la luz');
+  if (nitidez < 60) avisos.push('borrosa o movida');
+  return { brillo: Math.round(brillo), nitidez: Math.round(nitidez), avisos };
+}
+function renderPhotos(){
+  const has = photos.length > 0;
+  $('#scanStart').style.display = has ? 'none' : 'block';
+  $('#scanPhotos').style.display = has ? 'block' : 'none';
+  $('#nPhotos').textContent = photos.length + (photos.length===1?' página':' páginas');
+  $('#thumbs').innerHTML = photos.map((p,i) => `<div class="thumb"><img src="${p.url}" onclick="verFoto('${i}')" style="${p.calidad?.avisos.length?'border-color:#ffb347':''}"><button onclick="photos.splice(${i},1);renderPhotos()">×</button>${p.calidad?.avisos.length?'<span class="qwarn">⚠</span>':''}</div>`).join('');
+  const malas = photos.map((p,i) => p.calidad?.avisos.length ? `Página ${i+1}: ${p.calidad.avisos.join(' y ')}` : '').filter(Boolean);
+  $('#photoWarn').innerHTML = malas.length ? `<b>⚠ La foto puede leerse mal.</b> ${malas.join(' · ')}.<br>Es mejor repetirla: albarán plano, con buena luz, sin sombras y que salga entero. Si no hay forma de sacarla mejor, puedes seguir igualmente.` : '';
+  $('#photoWarn').style.display = malas.length ? 'block' : 'none';
+}
+function verFoto(i, src){
+  const u = src || photos[i]?.url; if (!u) return;
+  const v = $('#viewer'); v.querySelector('img').src = u; v.classList.add('on');
+}
+function resetScan(){ photos = []; $('#scanBusy').style.display='none'; renderPhotos() }
+
+async function processScan(){
+  const local = $('#scanLocal').value;
+  if (!CFG.ready){ toast('Primero conecta la app en ⚙ Ajustes', 4000); return }
+  $('#scanPhotos').style.display='none'; $('#scanBusy').style.display='block';
+  try{
+    const r = await apiPost({ action:'scan', local, images: photos.map(p => ({data:p.data, mimeType:p.mimeType})) });
+    if (r.aiError) toast('⚠️ La IA no pudo leerlo: ' + r.aiError + '. Rellénalo a mano.', 5000);
+    const d = r.data || {};
+    openReview({ ...d, local, fotos:r.fotos }, d.lineas || []);
+    photos = []; renderPhotos(); $('#scanBusy').style.display='none';
+  }catch(e){
+    $('#scanBusy').style.display='none'; $('#scanPhotos').style.display='block';
+    toast('Error: ' + e.message, 5000);
+  }
+}
+
+/* ===================== REVISIÓN / EDICIÓN ===================== */
+let R = null; // documento en revisión
+function openReview(a, lineas){
+  R = { a: { tipo:'Albarán', fecha: iso(new Date()), local: $('#scanLocal').value, ...a },
+        lineas: (lineas||[]).map(l => ({ producto:'', categoria:'Otros', cantidad:null, unidad:'ud', precio_unitario:null, descuento:0, importe:null, ...l })) };
+  if (!R.lineas.length && !a.id) R.lineas.push({ producto:'', categoria:'Otros', unidad:'ud', descuento:0 });
+  renderReview(); $('#modal').classList.add('on');
+}
+function renderReview(){
+  const a = R.a; const cats = [...new Set([...DB.categorias, ...R.lineas.map(l=>l.categoria).filter(Boolean)])];
+  const dup = a.numero && DB.albaranes.find(x => x.id !== a.id && norm(x.proveedor) === norm(a.proveedor) && String(x.numero).trim() === String(a.numero).trim());
+  const sumL = R.lineas.reduce((s,l) => s + (pnum(l.importe)||0), 0);
+  const ref = pnum(a.base) ?? (pnum(a.total) && pnum(a.iva) != null ? pnum(a.total) - pnum(a.iva) : null);
+  const diff = R.lineas.length && ref != null ? sumL - ref : 0;
+  const fotos = Array.isArray(a.fotos) ? a.fotos : String(a.fotos||'').split(/\s+/).filter(Boolean);
+
+  $('#sheet').innerHTML = `
+  <div class="sheet-h"><h3>${a.id ? 'Editar documento' : 'Revisar y guardar'}</h3><button class="x" onclick="closeModal()">×</button></div>
+  <div class="sheet-b">
+    ${dup ? `<div class="banner err">⚠️ Ya existe un documento de <b>${esc(dup.proveedor)}</b> con nº <b>${esc(dup.numero)}</b> (${fdate(dup.fecha)}, ${esc(dup.local)}). ¿Está duplicado?</div>` : ''}
+    ${fotos.length ? `<div class="photos row" style="margin-bottom:10px">${fotos.map(u=>`<a href="${esc(u)}" target="_blank" class="btn sm ghost">📎 Ver foto en Drive</a>`).join('')}</div>` : ''}
+    <div class="card">
+      <div class="grid3">
+        <div style="grid-column:span 2"><label class="f">Proveedor</label><input value="${esc(a.proveedor)}" oninput="R.a.proveedor=this.value" onchange="renderReview()" list="provList"></div>
+        <div><label class="f">Tipo</label><select onchange="R.a.tipo=this.value">${['Albarán','Ticket','Factura'].map(t=>`<option ${t===a.tipo?'selected':''}>${t}</option>`).join('')}</select></div>
+        <div><label class="f">Nº documento</label><input value="${esc(a.numero)}" oninput="R.a.numero=this.value" onchange="renderReview()"></div>
+        <div><label class="f">Fecha</label><input type="date" value="${esc((a.fecha||'').slice(0,10))}" onchange="R.a.fecha=this.value"></div>
+        <div><label class="f">CIF proveedor</label><input value="${esc(a.cif)}" oninput="R.a.cif=this.value"></div>
+        <div style="grid-column:1/-1"><label class="f">Local</label><select onchange="R.a.local=this.value">${DB.locales.map(l=>`<option ${l===a.local?'selected':''}>${esc(l)}</option>`).join('')}</select></div>
+        <div><label class="f">Base imponible</label><input inputmode="decimal" value="${a.base??''}" oninput="R.a.base=pnum(this.value)" onchange="renderReview()"></div>
+        <div><label class="f">IVA</label><input inputmode="decimal" value="${a.iva??''}" oninput="R.a.iva=pnum(this.value)" onchange="renderReview()"></div>
+        <div><label class="f">TOTAL</label><input inputmode="decimal" style="font-weight:700" value="${a.total??''}" oninput="R.a.total=pnum(this.value)" onchange="renderReview()"></div>
+      </div>
+      <datalist id="provList">${[...new Set(DB.albaranes.map(x=>x.proveedor))].map(p=>`<option value="${esc(p)}">`).join('')}</datalist>
+    </div>
+
+    <div class="row" style="margin:6px 0 8px"><h3 class="grow" style="margin:0">Productos (${R.lineas.length})</h3><button class="btn sm sec" onclick="R.lineas.push({producto:'',categoria:'Otros',unidad:'ud',descuento:0});renderReview()">+ Añadir línea</button></div>
+    ${Math.abs(diff) > 1 ? `<div class="banner">La suma de líneas (${eur(sumL)}) no cuadra con la base (${eur(ref)}). Diferencia: <b>${eur(diff)}</b>. Revisa los importes.</div>` : ''}
+    ${R.lineas.map((l,i) => lineEditor(l,i,cats)).join('')}
+
+    <div class="card"><label class="f">Notas</label><textarea rows="2" oninput="R.a.notas=this.value">${esc(a.notas)}</textarea></div>
+    <div class="row">
+      <button class="btn grow" style="padding:15px;font-size:16px" id="saveBtn" onclick="saveReview()">✓ Guardar ${a.id?'cambios':'en la base de datos'}</button>
+      <button class="btn sec" onclick="closeModal()">Descartar</button>
+    </div>
+  </div>`;
+}
+function lineEditor(l,i,cats){
+  const prev = l.producto ? lastPriceFor(l.producto, l.unidad, R.a.proveedor) : null;
+  let badge = '';
+  if (prev && prev.precio_unitario && pnum(l.precio_unitario) && (!R.a.id || prev.id_albaran !== R.a.id)){
+    const v = (pnum(l.precio_unitario) - prev.precio_unitario) / prev.precio_unitario;
+    if (Math.abs(v) >= 0.005) badge = `<span class="${v>0?'up':'down'} small">${v>0?'▲':'▼'} ${pct(v)} vs ${eur4(prev.precio_unitario)} (${fdate(prev.fecha)})</span>`;
+    else badge = `<span class="small muted">= mismo precio que la última compra</span>`;
+  }
+  return `<div class="line">
+    <div class="row"><input class="grow" placeholder="Producto" value="${esc(l.producto)}" oninput="R.lineas[${i}].producto=this.value" onchange="renderReview()">
+      <button class="btn sm danger" onclick="R.lineas.splice(${i},1);renderReview()">🗑</button></div>
+    <div class="grid4">
+      <div><div class="mini">Cantidad</div><input inputmode="decimal" value="${l.cantidad??''}" onchange="setL(${i},'cantidad',this.value)"></div>
+      <div><div class="mini">Unidad</div><input value="${esc(l.unidad)}" onchange="R.lineas[${i}].unidad=this.value;renderReview()"></div>
+      <div><div class="mini">Precio/ud</div><input inputmode="decimal" value="${l.precio_unitario??''}" onchange="setL(${i},'precio_unitario',this.value)"></div>
+      <div><div class="mini">Importe</div><input inputmode="decimal" value="${l.importe??''}" onchange="R.lineas[${i}].importe=pnum(this.value);renderReview()"></div>
+      <div><div class="mini">Dto %</div><input inputmode="decimal" value="${l.descuento??0}" onchange="setL(${i},'descuento',this.value)"></div>
+    </div>
+    <div class="row" style="margin-top:6px"><select style="max-width:220px;min-height:34px;padding:5px 8px;font-size:13px" onchange="R.lineas[${i}].categoria=this.value">${cats.map(c=>`<option ${c===l.categoria?'selected':''}>${esc(c)}</option>`).join('')}</select>${badge}</div>
+  </div>`;
+}
+function setL(i,k,v){
+  const l = R.lineas[i]; l[k] = pnum(v);
+  if (l.cantidad != null && l.precio_unitario != null) l.importe = Math.round(l.cantidad * l.precio_unitario * 100) / 100;
+  renderReview();
+}
+async function saveReview(){
+  const a = R.a;
+  if (!a.proveedor){ toast('Falta el proveedor'); return }
+  if (!a.fecha){ toast('Falta la fecha'); return }
+  if (a.total == null){ const s = R.lineas.reduce((s,l)=>s+(pnum(l.importe)||0),0); a.total = s + (pnum(a.iva)||0) }
+  const lineas = R.lineas.filter(l => l.producto).map(l => ({ producto:l.producto.trim(), categoria:l.categoria||'Otros', cantidad:pnum(l.cantidad), unidad:(l.unidad||'ud').trim(), precio_unitario:pnum(l.precio_unitario), descuento:pnum(l.descuento)||0, importe:pnum(l.importe) }));
+  const btn = $('#saveBtn'); btn.disabled = true; btn.textContent = 'Guardando…';
+  try{
+    if (!CFG.ready) throw new Error('la app no está conectada (⚙ Ajustes)');
+    {
+      await apiPost({ action:'save', albaran:{ ...a, lineas:undefined }, lineas });
+      await loadData(true);
+    }
+    closeModal(); toast('✅ Guardado');
+  }catch(e){ btn.disabled = false; btn.textContent = 'Reintentar guardar'; toast('Error: ' + e.message, 5000) }
+}
+function closeModal(){ $('#modal').classList.remove('on'); R = null }
+
+/* ===================== ALBARANES ===================== */
+function albItem(a){
+  const n = DB.lineas.filter(l => l.id_albaran === a.id).length;
+  return `<div class="item" onclick="openAlbaran('${esc(a.id)}')">
+    <div class="grow"><div class="t">${esc(a.proveedor || 'Sin proveedor')}</div>
+    <div class="small muted">${fdate(a.fecha)} · ${esc(a.local)}${a.numero?' · nº '+esc(a.numero):''}</div>
+    <div style="margin-top:3px"><span class="pill">${esc(a.tipo||'Albarán')}</span><span class="pill">${n} líneas</span>${a.fotos?'<span class="pill">📎 foto</span>':''}</div></div>
+    <div class="amt">${eur(a.total)}</div></div>`;
+}
+function renderRecent(){
+  const l = DB.albaranes.slice().sort((a,b) => String(b.creado).localeCompare(String(a.creado))).slice(0,6);
+  $('#recentList').innerHTML = l.length ? l.map(albItem).join('') : '<div class="empty">Aún no hay documentos. ¡Escanea el primero!</div>';
+}
+function filtAlbaranes(){
+  const q = norm($('#aSearch').value), loc = $('#aLocal').value, d1 = $('#aDesde').value, d2 = $('#aHasta').value, t = $('#aTipo').value;
+  return DB.albaranes.filter(a => (!loc || a.local === loc) && (!t || a.tipo === t) && (!d1 || a.fecha >= d1) && (!d2 || a.fecha <= d2) &&
+    (!q || norm(a.proveedor + ' ' + a.numero + ' ' + a.cif).includes(q) || DB.lineas.some(l => l.id_albaran === a.id && norm(l.producto).includes(q))))
+    .sort((a,b) => (b.fecha||'').localeCompare(a.fecha||'') || String(b.creado).localeCompare(String(a.creado)));
+}
+function renderAlbaranes(){
+  const l = filtAlbaranes();
+  $('#aCount').textContent = `${l.length} documentos · ${eur(l.reduce((s,a)=>s+a.total,0))}`;
+  $('#aList').innerHTML = l.length ? l.slice(0,300).map(albItem).join('') : '<div class="empty">No hay documentos con estos filtros.</div>';
+}
+function openAlbaran(id){
+  const a = DB.albaranes.find(x => x.id === id); if (!a) return;
+  const ls = DB.lineas.filter(l => l.id_albaran === id).sort((x,y) => x.n - y.n);
+  const fotos = String(a.fotos||'').split(/\s+/).filter(Boolean);
+  $('#sheet').innerHTML = `
+  <div class="sheet-h"><h3>${esc(a.proveedor)}</h3><button class="x" onclick="closeModal()">×</button></div>
+  <div class="sheet-b">
+    <div class="card"><div class="grid3 small">
+      <div><span class="muted">Tipo</span><br><b>${esc(a.tipo)}</b></div><div><span class="muted">Nº</span><br><b>${esc(a.numero||'—')}</b></div><div><span class="muted">Fecha</span><br><b>${fdate(a.fecha)}</b></div>
+      <div style="grid-column:span 2"><span class="muted">Local</span><br><b>${esc(a.local)}</b></div><div><span class="muted">CIF</span><br><b>${esc(a.cif||'—')}</b></div>
+      <div><span class="muted">Base</span><br><b>${a.base!=null?eur(a.base):'—'}</b></div><div><span class="muted">IVA</span><br><b>${a.iva!=null?eur(a.iva):'—'}</b></div><div><span class="muted">Total</span><br><b style="font-size:17px">${eur(a.total)}</b></div>
+    </div>${a.notas?`<p class="small" style="margin-bottom:0">📝 ${esc(a.notas)}</p>`:''}</div>
+    ${fotos.length ? `<div class="row" style="margin-bottom:10px">${fotos.map((u,i)=>`<a class="btn sm ghost" href="${esc(u)}" target="_blank" style="text-decoration:none">📎 Foto ${i+1} en Drive ↗</a>`).join('')}</div>` : ''}
+    <div class="tbl-wrap"><table><tr><th>Producto</th><th>Categoría</th><th class="n">Cant.</th><th>Ud</th><th class="n">Precio/ud</th><th class="n">Var.</th><th class="n">Importe</th></tr>
+    ${ls.map(l => { const v = varVsPrev(l); return `<tr class="click" onclick="openProducto('${esc(pkey(l))}')"><td>${esc(l.producto)}</td><td>${esc(l.categoria)}</td><td class="n">${num(l.cantidad,3)}</td><td>${esc(l.unidad)}</td><td class="n">${eur4(l.precio_unitario)}</td><td class="n">${v==null?'—':`<span class="${v>0.001?'up':v<-0.001?'down':''}">${pct(v)}</span>`}</td><td class="n">${eur(l.importe)}</td></tr>` }).join('') || '<tr><td colspan="7" class="muted">Sin líneas de producto</td></tr>'}
+    </table></div>
+    <div class="row" style="margin-top:14px">
+      <button class="btn" onclick="editAlbaran('${esc(a.id)}')">✏️ Editar</button>
+      <button class="btn danger" onclick="deleteAlbaran('${esc(a.id)}')">🗑 Eliminar</button>
+    </div>
+  </div>`;
+  $('#modal').classList.add('on');
+}
+function editAlbaran(id){
+  const a = DB.albaranes.find(x => x.id === id);
+  const ls = DB.lineas.filter(l => l.id_albaran === id).sort((x,y) => x.n - y.n).map(l => ({...l}));
+  openReview({ ...a, fotos: String(a.fotos||'').split(/\s+/).filter(Boolean) }, ls);
+}
+async function deleteAlbaran(id){
+  if (!confirm('¿Eliminar este documento y sus líneas? (la foto se conserva en Drive)')) return;
+  try{
+    await apiPost({ action:'delete', id }); await loadData(true);
+    closeModal(); toast('Eliminado');
+  }catch(e){ toast('Error: ' + e.message, 5000) }
+}
+/** Variación del precio de una línea frente a la compra anterior del mismo producto al mismo proveedor */
+function varVsPrev(l){
+  const p = PROD.get(pkey(l)); if (!p || !l.precio_unitario) return null;
+  const i = p.compras.indexOf(l);
+  const prev = p.compras.slice(0, i < 0 ? p.compras.length : i).reverse().find(x => norm(x.proveedor) === norm(l.proveedor) && x.id_albaran !== l.id_albaran);
+  return prev && prev.precio_unitario ? (l.precio_unitario - prev.precio_unitario) / prev.precio_unitario : null;
+}
+
+/* ===================== PRODUCTOS ===================== */
+function renderProductos(){
+  const q = norm($('#pSearch').value), cat = $('#pCat').value, loc = $('#pLocal').value, ord = $('#pOrden').value, soloVar = $('#pSoloVar').checked;
+  let list = [...PROD.values()].map(p => {
+    if (!loc) return p;
+    const c = p.compras.filter(x => x.local === loc); return c.length ? statsProduct({ ...p }, c) : null;
+  }).filter(p => p && (!cat || p.categoria === cat) && (!q || norm(p.nombre + ' ' + p.proveedores.join(' ')).includes(q)) && (!soloVar || (p.var && Math.abs(p.var) >= 0.001)));
+  const s = { var: (a,b) => (b.var??-9) - (a.var??-9), gasto: (a,b) => b.gasto - a.gasto, compras: (a,b) => b.n - a.n,
+              nombre: (a,b) => a.nombre.localeCompare(b.nombre,'es'), recent: (a,b) => (b.last.fecha||'').localeCompare(a.last.fecha||'') };
+  list.sort(s[ord]);
+  $('#pCount').textContent = `${list.length} productos · gasto ${eur(list.reduce((s,p)=>s+p.gasto,0))} (sin IVA)`;
+  $('#pTable').innerHTML = `<tr><th>Producto</th><th>Categoría</th><th>Proveedor (último)</th><th class="n">Último precio</th><th class="n">Anterior</th><th class="n">Variación</th><th class="n">Medio</th><th class="n">Mín – Máx</th><th class="n">Compras</th><th class="n">Gasto</th></tr>` +
+    (list.slice(0,500).map(p => `<tr class="click" onclick="openProducto('${esc(p.key)}')">
+      <td><b>${esc(p.nombre)}</b> <span class="muted small">/${esc(p.unidad)}</span></td><td>${esc(p.categoria)}</td><td>${esc(p.last.proveedor)}</td>
+      <td class="n"><b>${eur4(p.lastPrice)}</b></td><td class="n">${p.prevPrice?eur4(p.prevPrice):'—'}</td>
+      <td class="n">${p.var==null?'—':`<span class="${p.var>0.001?'up':p.var<-0.001?'down':''}">${p.var>0.001?'▲ ':p.var<-0.001?'▼ ':''}${pct(p.var)}</span>`}</td>
+      <td class="n">${eur4(p.avg)}</td><td class="n">${eur4(p.min)} – ${eur4(p.max)}</td><td class="n">${p.n}</td><td class="n">${eur(p.gasto)}</td></tr>`).join('')
+     || '<tr><td colspan="10" class="empty">No hay productos todavía.</td></tr>');
+}
+let chProd;
+function openProducto(key){
+  const p = PROD.get(key); if (!p) return;
+  const provs = p.proveedores;
+  $('#sheet').innerHTML = `
+  <div class="sheet-h"><h3>${esc(p.nombre)} <span class="muted small">/${esc(p.unidad)}</span></h3><button class="x" onclick="closeModal()">×</button></div>
+  <div class="sheet-b">
+    <div class="kpis">
+      <div class="kpi"><div class="l">Último precio</div><div class="v">${eur4(p.lastPrice)}</div><div class="d">${fdate(p.last.fecha)} · ${esc(p.last.proveedor)}</div></div>
+      <div class="kpi"><div class="l">Variación vs anterior</div><div class="v ${p.var>0.001?'up':p.var<-0.001?'down':''}">${p.var==null?'—':pct(p.var)}</div><div class="d">mismo proveedor</div></div>
+      <div class="kpi"><div class="l">Precio medio</div><div class="v">${eur4(p.avg)}</div><div class="d">mín ${eur4(p.min)} · máx ${eur4(p.max)}</div></div>
+      <div class="kpi"><div class="l">Gasto total</div><div class="v">${eur(p.gasto)}</div><div class="d">${num(p.qty,2)} ${esc(p.unidad)} en ${p.n} compras</div></div>
+    </div>
+    <div class="card"><h3>Evolución del precio</h3><div class="chart-box" style="height:250px"><canvas id="chProd"></canvas></div></div>
+    <div class="tbl-wrap"><table><tr><th>Fecha</th><th>Local</th><th>Proveedor</th><th class="n">Cant.</th><th class="n">Precio/ud</th><th class="n">Var.</th><th class="n">Importe</th></tr>
+    ${p.compras.slice().reverse().map(l => { const v = varVsPrev(l); return `<tr class="click" onclick="openAlbaran('${esc(l.id_albaran)}')"><td>${fdate(l.fecha)}</td><td>${esc(l.local)}</td><td>${esc(l.proveedor)}</td><td class="n">${num(l.cantidad,3)}</td><td class="n">${eur4(l.precio_unitario)}</td><td class="n">${v==null?'—':`<span class="${v>0.001?'up':v<-0.001?'down':''}">${pct(v)}</span>`}</td><td class="n">${eur(l.importe)}</td></tr>` }).join('')}
+    </table></div>
+  </div>`;
+  $('#modal').classList.add('on');
+  chProd?.destroy();
+  chProd = new Chart($('#chProd'), {
+    type:'line',
+    data:{ datasets: provs.slice(0,8).map((pv,i) => ({ label:pv, data:p.compras.filter(c=>c.proveedor===pv).map(c=>({x:c.fecha, y:c.precio_unitario})),
+      borderColor:SERIES[i], backgroundColor:SERIES[i], borderWidth:2, pointRadius:4, pointHoverRadius:6, tension:0, stepped:false })) },
+    options: chartOpts({ x:{ type:'category', labels:[...new Set(p.compras.map(c=>c.fecha))] }, legend: provs.length>1, money4:true })
+  });
+}
+
+/* ===================== ANÁLISIS ===================== */
+let charts = {};
+function setPreset(p){
+  const t = new Date(), y = t.getFullYear(), m = t.getMonth(); let d1='', d2=iso(t);
+  if (p==='mes') d1 = iso(new Date(y,m,1));
+  if (p==='mesant'){ d1 = iso(new Date(y,m-1,1)); d2 = iso(new Date(y,m,0)) }
+  if (p==='30') d1 = iso(new Date(t - 30*864e5));
+  if (p==='90') d1 = iso(new Date(t - 90*864e5));
+  if (p==='anio') d1 = iso(new Date(y,0,1));
+  if (p==='todo'){ d1=''; d2='' }
+  $('#fDesde').value = d1; $('#fHasta').value = d2; localStorage.preset = p;
+  document.querySelectorAll('#presets button[data-p]').forEach(b => b.classList.toggle('on', b.dataset.p === p));
+  renderAnalisis();
+}
+function clearPreset(){ localStorage.preset=''; document.querySelectorAll('#presets button[data-p]').forEach(b => b.classList.remove('on')) }
+document.querySelectorAll('#presets button[data-p]').forEach(b => b.onclick = () => setPreset(b.dataset.p));
+
+function analisisData(){
+  const d1 = $('#fDesde').value, d2 = $('#fHasta').value, loc = $('#fLocal').value, prov = $('#fProv').value, cat = $('#fCat').value;
+  const okA = a => (!d1 || a.fecha >= d1) && (!d2 || a.fecha <= d2) && (!loc || a.local === loc) && (!prov || a.proveedor === prov);
+  let alb = DB.albaranes.filter(okA);
+  const lin = DB.lineas.filter(l => okA(l) && (!cat || l.categoria === cat));
+  if (cat){ const ids = new Set(lin.map(l=>l.id_albaran)); alb = alb.filter(a => ids.has(a.id)) }
+  return { alb, lin, d1, d2, loc, prov, cat };
+}
+function renderAnalisis(){
+  if (!$('#fUmbral').value) $('#fUmbral').value = CFG.umbral;
+  const umbral = (pnum($('#fUmbral').value) ?? 5) / 100;
+  const { alb, lin, cat } = analisisData();
+  const total = cat ? lin.reduce((s,l)=>s+(l.importe||0),0) : alb.reduce((s,a)=>s+a.total,0);
+  const provs = new Set(alb.map(a=>a.proveedor));
+  const alerts = lin.map(l => ({ l, v: varVsPrev(l) })).filter(x => x.v != null && Math.abs(x.v) >= umbral)
+    .map(x => { const prev = x.l.precio_unitario / (1 + x.v); return { ...x, prev, impacto: (x.l.precio_unitario - prev) * (x.l.cantidad||0) } })
+    .sort((a,b) => b.impacto - a.impacto);
+  const sobrecoste = alerts.reduce((s,x) => s + Math.max(0, x.impacto), 0);
+
+  $('#kpis').innerHTML = `
+    <div class="kpi"><div class="l">Gasto ${cat?'(sin IVA, categoría)':'(con IVA)'}</div><div class="v">${eur(total)}</div><div class="d">${alb.length} documentos</div></div>
+    <div class="kpi"><div class="l">Importe medio por documento</div><div class="v">${eur(alb.length ? alb.reduce((s,a)=>s+a.total,0)/alb.length : 0)}</div><div class="d">con IVA</div></div>
+    <div class="kpi"><div class="l">Proveedores</div><div class="v">${provs.size}</div><div class="d">${new Set(lin.map(pkey)).size} productos distintos</div></div>
+    <div class="kpi"><div class="l">Subidas de precio ≥ ${num(umbral*100,1)} %</div><div class="v ${alerts.filter(a=>a.v>0).length?'up':''}">${alerts.filter(a=>a.v>0).length}</div><div class="d">sobrecoste estimado ${eur(sobrecoste)}</div></div>`;
+
+  // Gasto mensual por local (apilado)
+  const months = [...new Set(alb.map(a => (a.fecha||'').slice(0,7)))].filter(Boolean).sort();
+  const locs = DB.locales.filter(l => alb.some(a => a.local === l));
+  drawChart('chMes', { type:'bar', data:{ labels: months.map(m => { const [y,mm] = m.split('-'); return new Date(y,mm-1,1).toLocaleDateString('es-ES',{month:'short',year:'2-digit'}) }),
+    datasets: locs.map(l => ({ label:l, data: months.map(m => alb.filter(a => a.local===l && a.fecha.startsWith(m)).reduce((s,a)=>s+a.total,0)), backgroundColor: SERIES[DB.locales.indexOf(l)%8], borderColor:'#fcfcfb', borderWidth:{top:2}, borderRadius:4, borderSkipped:'bottom', maxBarThickness:46 })) },
+    options: chartOpts({ stacked:true, legend:true }) });
+
+  // Proveedores top 10
+  const byProv = group(alb, a=>a.proveedor, a=>a.total).slice(0,10);
+  drawChart('chProv', hbar(byProv, SERIES[0]));
+  // Categorías
+  drawChart('chCat', hbar(group(lin, l=>l.categoria||'Otros', l=>l.importe||0), SERIES[2]));
+  // Locales
+  const byLoc = group(alb, a=>a.local, a=>a.total);
+  drawChart('chLocal', { type:'bar', data:{ labels: byLoc.map(x=>x[0]), datasets:[{ label:'Gasto', data: byLoc.map(x=>x[1]), backgroundColor: byLoc.map(x=>SERIES[DB.locales.indexOf(x[0])%8]), borderRadius:4, maxBarThickness:56 }] }, options: chartOpts({}) });
+
+  $('#alertTable').innerHTML = `<tr><th>Fecha</th><th>Local</th><th>Proveedor</th><th>Producto</th><th class="n">Antes</th><th class="n">Ahora</th><th class="n">Var.</th><th class="n">Impacto €</th></tr>` +
+    (alerts.slice(0,100).map(x => `<tr class="click" onclick="openProducto('${esc(pkey(x.l))}')"><td>${fdate(x.l.fecha)}</td><td>${esc(x.l.local)}</td><td>${esc(x.l.proveedor)}</td><td><b>${esc(x.l.producto)}</b></td><td class="n">${eur4(x.prev)}</td><td class="n">${eur4(x.l.precio_unitario)}</td><td class="n"><span class="${x.v>0?'up':'down'}">${x.v>0?'▲':'▼'} ${pct(x.v)}</span></td><td class="n">${eur(x.impacto)}</td></tr>`).join('')
+     || `<tr><td colspan="8" class="muted">Sin variaciones de precio ≥ ${num(umbral*100,1)} % en este periodo 👍</td></tr>`);
+
+  const top = group(lin, pkey, l=>l.importe||0).slice(0,15);
+  $('#topTable').innerHTML = `<tr><th>Producto</th><th>Categoría</th><th class="n">Cantidad</th><th class="n">Precio medio</th><th class="n">Gasto</th><th class="n">% del total</th></tr>` +
+    (top.map(([k,g]) => { const ls = lin.filter(l=>pkey(l)===k), q = ls.reduce((s,l)=>s+(l.cantidad||0),0), tl = lin.reduce((s,l)=>s+(l.importe||0),0); const p = PROD.get(k);
+      return `<tr class="click" onclick="openProducto('${esc(k)}')"><td><b>${esc(p?.nombre||k)}</b> <span class="muted small">/${esc(p?.unidad||'')}</span></td><td>${esc(p?.categoria)}</td><td class="n">${num(q,2)}</td><td class="n">${eur4(q?g/q:0)}</td><td class="n">${eur(g)}</td><td class="n">${num(tl?g/tl*100:0,1)} %</td></tr>` }).join('')
+     || '<tr><td colspan="6" class="muted">Sin datos</td></tr>');
+}
+function group(arr, kf, vf){ const m = new Map(); arr.forEach(x => { const k = kf(x); m.set(k, (m.get(k)||0) + vf(x)) }); return [...m].sort((a,b) => b[1]-a[1]) }
+function hbar(pairs, color){
+  return { type:'bar', data:{ labels: pairs.map(x => x[0].length > 28 ? x[0].slice(0,27)+'…' : x[0]), datasets:[{ label:'Gasto', data: pairs.map(x=>x[1]), backgroundColor: color, borderRadius:4, maxBarThickness:22 }] },
+           options: chartOpts({ horizontal:true }) };
+}
+function chartOpts({ stacked=false, legend=false, horizontal=false, money4=false, x }){
+  const fmt = v => money4 ? eur4(v) : eur(v);
+  const grid = { color:'#ecebe6', drawTicks:false }, ticks = { color:'#52514e', font:{size:11} };
+  const valAxis = { stacked, grid, border:{display:false}, ticks:{ ...ticks, callback: v => money4 ? eur4(v) : (Math.abs(v)>=1000 ? num(v/1000,1)+' k€' : num(v,0)+' €') } };
+  const catAxis = { stacked, grid:{display:false}, border:{color:'#d5d3cc'}, ticks, ...(x||{}) };
+  return { responsive:true, maintainAspectRatio:false, indexAxis: horizontal ? 'y' : 'x',
+    interaction:{ mode: stacked ? 'index' : 'nearest', intersect:false },
+    plugins:{ legend:{ display:legend, position:'bottom', labels:{ boxWidth:10, boxHeight:10, usePointStyle:true, pointStyle:'rectRounded', color:'#52514e', font:{size:11} } },
+      tooltip:{ backgroundColor:'#0b0b0b', padding:10, cornerRadius:8, callbacks:{ label: c => ` ${c.dataset.label}: ${fmt(c.parsed[horizontal?'x':'y'])}`,
+        footer: items => stacked && items.length>1 ? 'Total: ' + eur(items.reduce((s,i)=>s+i.parsed.y,0)) : '' } } },
+    scales: horizontal ? { x: valAxis, y: catAxis } : { x: catAxis, y: valAxis } };
+}
+function drawChart(id, cfg){ charts[id]?.destroy(); charts[id] = new Chart($('#'+id), cfg) }
+
+/* ===================== AJUSTES / EXPORTAR ===================== */
+function renderAjustes(){
+  $('#cfgUrl').value = localStorage.apiUrl || CFG0.apiUrl || ''; $('#cfgKey').value = CFG.key;
+  const s = $('#sheetLink'), f = $('#folderLink');
+  s.style.display = DB.sheetUrl ? 'inline-flex' : 'none'; s.href = DB.sheetUrl || '#';
+  f.style.display = DB.folderUrl ? 'inline-flex' : 'none'; f.href = DB.folderUrl || '#';
+}
+async function saveCfg(){
+  localStorage.apiUrl = $('#cfgUrl').value.trim(); localStorage.apiKey = $('#cfgKey').value.trim();
+  if (!localStorage.apiUrl){ toast('Pega la URL de la aplicación web'); return }
+  setLive('off','Conectando…'); await loadData(); startPolling();
+  if ($('#liveDot').classList.contains('err')) toast('No se pudo conectar. Revisa URL y clave.', 4000); else toast('✅ Conectado a Google Drive');
+  renderAjustes();
+}
+function openExport(){ go('ajustes') }
+
+function rowsAlb(list){ return list.map(a => ({ ID:a.id, Registrado:a.creado, Local:a.local, Tipo:a.tipo, Proveedor:a.proveedor, CIF:a.cif, 'Nº':a.numero, Fecha:a.fecha, Base:a.base, IVA:a.iva, Total:a.total, Fotos:a.fotos, Notas:a.notas })) }
+function rowsLin(list){ return list.map(l => ({ 'ID albarán':l.id_albaran, Línea:l.n, Fecha:l.fecha, Local:l.local, Proveedor:l.proveedor, Producto:l.producto, Categoría:l.categoria, Cantidad:l.cantidad, Unidad:l.unidad, 'Precio/ud':l.precio_unitario, 'Dto %':l.descuento, Importe:l.importe, 'Var. vs anterior %': (v => v==null?null:Math.round(v*1000)/10)(varVsPrev(l)) })) }
+function rowsProd(){ return [...PROD.values()].map(p => ({ Producto:p.nombre, Unidad:p.unidad, Categoría:p.categoria, 'Último proveedor':p.last.proveedor, 'Última compra':p.last.fecha, 'Último precio':p.lastPrice, 'Precio anterior':p.prevPrice, 'Variación %':p.var==null?null:Math.round(p.var*1000)/10, 'Precio medio':Math.round(p.avg*10000)/10000, Mínimo:p.min, Máximo:p.max, Compras:p.n, Cantidad:p.qty, Gasto:Math.round(p.gasto*100)/100, Proveedores:p.proveedores.join(', '), Locales:p.locales.join(', ') })) }
+function xlsx(sheets, name){
+  const wb = XLSX.utils.book_new();
+  for (const [n, rows] of sheets){ const ws = XLSX.utils.json_to_sheet(rows.length ? rows : [{}]); ws['!cols'] = Object.keys(rows[0]||{}).map(k => ({ wch: Math.max(10, Math.min(40, k.length + 4)) })); XLSX.utils.book_append_sheet(wb, ws, n) }
+  XLSX.writeFile(wb, name);
+}
+const stamp = () => iso(new Date());
+function exportExcel(){ xlsx([['Albaranes', rowsAlb(DB.albaranes)], ['Líneas', rowsLin(DB.lineas)], ['Productos', rowsProd()]], `albaranes_BD_${stamp()}.xlsx`) }
+function exportCSV(which){
+  const rows = which === 'albaranes' ? rowsAlb(DB.albaranes) : rowsLin(DB.lineas);
+  const ws = XLSX.utils.json_to_sheet(rows); const csv = XLSX.utils.sheet_to_csv(ws, { FS:';' });
+  const b = new Blob(['﻿' + csv], { type:'text/csv;charset=utf-8' }); const a = document.createElement('a');
+  a.href = URL.createObjectURL(b); a.download = `${which}_${stamp()}.csv`; a.click();
+}
+function exportAlbaranesFiltrados(){ const l = filtAlbaranes(), ids = new Set(l.map(a=>a.id)); xlsx([['Albaranes', rowsAlb(l)], ['Líneas', rowsLin(DB.lineas.filter(x=>ids.has(x.id_albaran)))]], `albaranes_filtrados_${stamp()}.xlsx`) }
+function exportAnalisis(){
+  const { alb, lin, d1, d2, loc, prov, cat } = analisisData();
+  const filtros = [{ Filtro:'Desde', Valor:d1||'—' },{ Filtro:'Hasta', Valor:d2||'—' },{ Filtro:'Local', Valor:loc||'Todos' },{ Filtro:'Proveedor', Valor:prov||'Todos' },{ Filtro:'Categoría', Valor:cat||'Todas' }];
+  xlsx([['Filtros', filtros], ['Por proveedor', group(alb,a=>a.proveedor,a=>a.total).map(([k,v])=>({Proveedor:k, 'Gasto con IVA':Math.round(v*100)/100}))],
+        ['Por local', group(alb,a=>a.local,a=>a.total).map(([k,v])=>({Local:k, 'Gasto con IVA':Math.round(v*100)/100}))],
+        ['Por categoría', group(lin,l=>l.categoria||'Otros',l=>l.importe||0).map(([k,v])=>({Categoría:k, 'Gasto sin IVA':Math.round(v*100)/100}))],
+        ['Albaranes', rowsAlb(alb)], ['Líneas', rowsLin(lin)]], `analisis_${stamp()}.xlsx`);
+}
+
+/* ===================== ARRANQUE ===================== */
+(async function init(){
+  fillSelects();
+  const t = localStorage.tab || 'escanear';
+  document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b.dataset.t === t));
+  document.querySelectorAll('.tab').forEach(s => s.classList.toggle('on', s.id === 't-'+t));
+  const p = localStorage.preset ?? 'mes';
+  if (p){ setPresetSilent(p) }
+  await loadData(); startPolling();
+})();
+function setPresetSilent(p){
+  const t = new Date(), y = t.getFullYear(), m = t.getMonth(); let d1='', d2=iso(t);
+  if (p==='mes') d1 = iso(new Date(y,m,1)); if (p==='mesant'){ d1 = iso(new Date(y,m-1,1)); d2 = iso(new Date(y,m,0)) }
+  if (p==='30') d1 = iso(new Date(t - 30*864e5)); if (p==='90') d1 = iso(new Date(t - 90*864e5)); if (p==='anio') d1 = iso(new Date(y,0,1)); if (p==='todo'){ d1=''; d2='' }
+  $('#fDesde').value = d1; $('#fHasta').value = d2;
+  document.querySelectorAll('#presets button[data-p]').forEach(b => b.classList.toggle('on', b.dataset.p === p));
+}
+</script>
+</body>
+</html>
