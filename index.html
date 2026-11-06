@@ -7,7 +7,43 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Albaranes">
 <title>Control de Albaranes</title>
-<script src="config.js"></script>
+<script>
+/* =====================================================================
+   CONFIGURACIÓN DE LA APP DE ALBARANES
+   Este archivo va junto a index.html. Lo que pongas aquí se aplica
+   a TODOS los móviles: nadie tiene que configurar nada a mano.
+   ===================================================================== */
+window.APP_CONFIG = {
+
+  /* --- Vinculación con Google Drive ------------------------------- */
+  // Cuenta de Google donde se guardan fotos, hoja de cálculo y base de datos.
+  // La app comprueba que el Apps Script esté publicado con esta cuenta;
+  // si no coincide, bloquea el guardado para que nada acabe en otra cuenta.
+  cuentaGoogle: 'david.alibiogestion@gmail.com',
+
+  // URL de la Aplicación web del Apps Script (publicado con la cuenta de arriba).
+  // Termina en /exec
+  apiUrl: 'https://script.google.com/macros/s/AKfycbxgQcRCndxR4BVCmmpRHyNwdnGA_maYUubuXrpkoAMmC2tUuXNCYW5t606X7IdJTRmP/exec',
+
+  // Clave de acceso que muestra setup() en el Apps Script.
+  apiKey: '',   // NO se pone aquí: el repositorio es público. Se escribe una vez en ⚙ Ajustes de cada móvil.
+
+  // true = la URL y la clave no se pueden cambiar desde ⚙ Ajustes en el móvil.
+  bloquearAjustes: false,
+
+  /* --- Escaneo ---------------------------------------------------- */
+  // Al hacer la foto se lee y se guarda solo (se puede desactivar en Ajustes de cada móvil).
+  autoGuardado: true,
+  // Segundos de margen tras la foto para añadir más páginas antes de enviarla.
+  segundosAntesDeEnviar: 4,
+  // Diferencia máxima (%) entre la suma de productos y la base imponible para darlo por bueno.
+  toleranciaCuadrePct: 2,
+
+  /* --- Otros ------------------------------------------------------ */
+  refrescoSegundos: 20,
+  umbralAlertaPct: 5
+};
+</script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <style>
@@ -127,6 +163,24 @@ nav button.scan{color:var(--ink)}
 .photos a img{height:110px;border-radius:8px;border:1px solid var(--line)}
 .toast{position:fixed;left:50%;bottom:calc(var(--nav) + 24px);transform:translateX(-50%);background:var(--ink);color:#fff;padding:11px 18px;border-radius:12px;z-index:80;font-size:14px;display:none;max-width:90vw}
 .empty{text-align:center;color:var(--muted);padding:30px 10px}
+.viewer{position:fixed;inset:0;z-index:90;background:rgba(0,0,0,.92);display:none;align-items:center;justify-content:center;padding:20px}
+.viewer.on{display:flex}.viewer img{max-width:100%;max-height:100%;border-radius:8px}
+.lowtag{background:#fff1c2;padding:0 4px;border-radius:4px}
+.qwarn{position:absolute;bottom:4px;left:4px;background:#ffb347;color:#2b1b00;border-radius:6px;padding:0 5px;font-size:12px;font-weight:700}
+.pill.rev{background:#fff1c2;color:#7a4b00}.pill.ok{background:#e1f3e8;color:var(--good)}
+.autobar{margin-top:12px;background:rgba(255,255,255,.14);border-radius:12px;padding:10px 12px;font-size:14px;display:flex;align-items:center;gap:10px}
+.autobar b{font-size:20px;font-variant-numeric:tabular-nums}
+.result{border-radius:14px;padding:14px;margin-top:14px;background:#fff;color:var(--ink)}
+.result.ok{border-left:6px solid var(--good)}.result.rev{border-left:6px solid var(--accent)}.result.cola{border-left:6px solid var(--s1)}
+.cuenta{display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:12px;background:#e1f3e8;color:#0a4d27;font-size:14px;margin-bottom:10px}
+.cuenta.mal{background:#fdecec;color:#7a1f1f}.cuenta.nd{background:#f1f0eb;color:var(--ink2)}
+.paso{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:10px;opacity:.75}
+.paso.act{opacity:1;border-color:var(--brand2);box-shadow:0 0 0 2px rgba(31,90,73,.15)}
+.paso.ok{opacity:1}.paso.ok .num{background:var(--good)}
+.paso .num{width:26px;height:26px;border-radius:50%;background:var(--brand);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex:0 0 auto}
+.paso .pc{margin-top:8px;font-size:14px}.paso ol{margin:0 0 10px;padding-left:20px}.paso li{margin-bottom:4px}
+.paso:not(.act) .pc{display:none}
+.asis code{background:#eceae3;padding:1px 5px;border-radius:5px;font-size:12.5px}
 .legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--ink2);margin-top:8px}
 .legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
 </style>
@@ -141,7 +195,7 @@ nav button.scan{color:var(--ink)}
 
 <main>
   <div id="setupBanner" class="banner" style="display:none">
-    <b>App sin conectar.</b> Pega la URL del Apps Script y la clave de acceso en <a href="#" onclick="go('ajustes');return false">⚙ Ajustes</a> para empezar a guardar albaranes en Google Drive.
+    <b>App sin conectar a Google Drive.</b> <a href="#" onclick="abrirAsistente();return false">Abre el asistente de conexión</a>: te guía paso a paso (unos 5 minutos).
   </div>
   <div id="errBanner" class="banner err" style="display:none"></div>
 
@@ -171,8 +225,13 @@ nav button.scan{color:var(--ink)}
           <button class="btn" onclick="$('#camInput').click()">📷 Añadir página</button>
           <button class="btn" onclick="resetScan()">✕ Cancelar</button>
         </div>
-        <button class="btn process" onclick="processScan()">⚡ Leer albarán con IA</button>
+        <div class="autobar" id="autoBar" style="display:none">
+          <b id="autoN">4</b><div class="grow">Se lee y se guarda solo. ¿El albarán tiene más hojas? Pulsa <b style="font-size:14px">📷 Añadir página</b>.</div>
+        </div>
+        <button class="btn process" id="processBtn" onclick="processScan()">⚡ Leer albarán con IA</button>
       </div>
+
+      <div id="scanResult"></div>
 
       <div id="scanBusy" style="display:none;text-align:center;padding:24px 0">
         <div class="spinner"></div>
@@ -183,9 +242,11 @@ nav button.scan{color:var(--ink)}
       <input type="file" id="galInput" accept="image/*" multiple hidden onchange="addPhotos(this.files);this.value=''">
     </div>
 
+    <div class="card" id="colaCard" style="display:none;border-color:#b9d3f3;background:#f3f8ff"></div>
+
     <div class="card" id="pendCard" style="display:none;border-color:#f1d9a6;background:#fffaf0">
-      <div class="row"><div class="grow"><b id="pendTxt"></b><div class="small muted">Albaranes poco legibles guardados para revisar con la foto</div></div>
-      <button class="btn sm" onclick="$('#aEstado').value='Revisar';go('albaranes')">Revisar</button></div>
+      <div class="row"><div class="grow"><b id="pendTxt"></b><div class="small muted">Albaranes que no pasaron la validación automática: hay que revisarlos a mano con la foto</div></div>
+      <button class="btn sm" onclick="$('#aEstado').value='Por revisar';go('albaranes')">Revisar</button></div>
     </div>
 
     <details class="card tips">
@@ -215,6 +276,7 @@ nav button.scan{color:var(--ink)}
         <input type="date" id="aDesde" onchange="renderAlbaranes()">
         <input type="date" id="aHasta" onchange="renderAlbaranes()">
         <select id="aTipo" onchange="renderAlbaranes()"><option value="">Todos los tipos</option><option>Albarán</option><option>Ticket</option><option>Factura</option></select>
+        <select id="aEstado" onchange="renderAlbaranes()"><option value="">Todos los estados</option><option>Por revisar</option><option>Validado</option></select>
       </div>
       <div class="row small muted" style="margin-top:8px"><span id="aCount" class="grow"></span><button class="btn sm ghost" onclick="exportAlbaranesFiltrados()">⬇︎ Excel de esta lista</button></div>
     </div>
@@ -297,14 +359,22 @@ nav button.scan{color:var(--ink)}
       </div>
     </div>
     <div class="card">
+      <h3>Escaneo</h3>
+      <label class="row" style="gap:10px;align-items:flex-start"><input type="checkbox" id="cfgAuto" style="width:auto;min-height:0;margin-top:3px" onchange="localStorage.autoGuardado=this.checked?'1':'0';toast(this.checked?'Guardado automático activado':'Guardado automático desactivado')">
+        <span><b>Guardar automáticamente al hacer la foto</b><br><span class="small muted">Si la lectura cuadra (proveedor, fecha, líneas = base, sin duplicados) entra directa. Si algo no cuadra, se guarda igual pero como <b>Por revisar</b>.</span></span></label>
+    </div>
+    <div class="card">
       <h3>Conexión con Google Drive</h3>
+      <div id="cuentaBox"></div>
+      <button class="btn sec" style="margin-bottom:12px" onclick="abrirAsistente()">🧭 Asistente de conexión paso a paso</button>
+      <div id="cfgLockMsg" class="small muted" style="display:none;margin-bottom:8px">🔒 Conexión fijada en <code>config.js</code>: todos los móviles guardan en la misma cuenta y no se puede cambiar desde aquí.</div>
       <label class="f">URL de la Aplicación web (Apps Script, termina en /exec)</label>
       <input id="cfgUrl" placeholder="https://script.google.com/macros/s/…/exec">
       <div style="height:10px"></div>
       <label class="f">Clave de acceso (la muestra setup() al instalar)</label>
       <input id="cfgKey" placeholder="clave" autocomplete="off">
       <div class="row" style="margin-top:12px">
-        <button class="btn" onclick="saveCfg()">Guardar y conectar</button>
+        <button class="btn" id="cfgSaveBtn" onclick="saveCfg()">Guardar y conectar</button>
       </div>
       <p class="small muted">La clave se guarda solo en este dispositivo. En iPhone/Android: menú del navegador → <b>Añadir a pantalla de inicio</b> para usarla como una app.</p>
     </div>
@@ -321,15 +391,266 @@ nav button.scan{color:var(--ink)}
 
 <div class="modal" id="modal" onclick="if(event.target===this)closeModal()"><div class="sheet" id="sheet"></div></div>
 <div class="toast" id="toast"></div>
+<div class="viewer" id="viewer" onclick="this.classList.remove('on')"><img alt="Foto del albarán"></div>
 
+<script type="text/plain" id="gsCode">
+/* =====================================================================
+   CONTROL DE ALBARANES · Servidor (Google Apps Script)
+   Guarda las fotos en Google Drive y los datos en una hoja de cálculo
+   de la cuenta con la que se publica este script.
+   ---------------------------------------------------------------------
+   El asistente de conexión de la app rellena estas 4 líneas solo.
+   ===================================================================== */
+const CUENTA_ESPERADA = '__CUENTA__';          // cuenta de Google que debe ser la dueña
+const CLAVE_ACCESO    = '__CLAVE_ACCESO__';    // contraseña compartida con la app
+const PROVEEDOR_IA    = '__PROVEEDOR_IA__';    // 'gemini' o 'claude'
+const CLAVE_IA        = '__CLAVE_IA__';        // clave de la API de la IA que lee los albaranes
+
+const MODELOS_GEMINI = ['gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-2.5-flash'];
+const MODELO_CLAUDE  = 'claude-sonnet-5-5';
+
+const NOMBRE_HOJA    = 'Control de Albaranes · Base de datos';
+const NOMBRE_CARPETA = 'Control de Albaranes · Fotos';
+const LOCALES_INICIALES = ['Explotaciones de Hostelería Caleta','Santo y Seña Gestión','El Santo Gestión','St3','Somos de Santoña','Alibio Gestión'];
+const CATEGORIAS = ['Pescado y marisco','Carne','Frutas y verduras','Lácteos y huevos','Panadería y bollería','Alimentación seca','Congelados','Bebidas','Vinos y licores','Café e infusiones','Limpieza','Menaje y desechables','Mantenimiento','Otros'];
+
+const COL_ALB = ['id','creado','local','tipo','proveedor','cif','numero','fecha','base','iva','total','fotos','notas','estado','motivos'];
+const COL_LIN = ['id_albaran','n','fecha','local','proveedor','producto','producto_norm','categoria','cantidad','unidad','precio_unitario','descuento','importe'];
+const NUMS = ['base','iva','total','n','cantidad','precio_unitario','descuento','importe'];
+
+/* ===================== INSTALACIÓN ===================== */
+/** Ejecuta esta función UNA VEZ desde el editor (botón ▶ Ejecutar). Crea la hoja y la carpeta en tu Drive. */
+function setup(){
+  const yo = Session.getEffectiveUser().getEmail();
+  if (CUENTA_ESPERADA.indexOf('@') > 0 && yo.toLowerCase() !== CUENTA_ESPERADA.toLowerCase())
+    throw new Error('Estás usando la cuenta ' + yo + ' pero la app espera ' + CUENTA_ESPERADA + '. Abre script.google.com con esa cuenta.');
+  if (CLAVE_ACCESO.indexOf('__') === 0) throw new Error('Falta la clave de acceso: copia el código desde el asistente de la app.');
+  const p = PropertiesService.getScriptProperties();
+
+  let ss = p.getProperty('SHEET_ID') && abrir_(() => SpreadsheetApp.openById(p.getProperty('SHEET_ID')));
+  if (!ss){ ss = SpreadsheetApp.create(NOMBRE_HOJA); p.setProperty('SHEET_ID', ss.getId()) }
+  hoja_(ss, 'Albaranes', COL_ALB);
+  hoja_(ss, 'Lineas', COL_LIN);
+  const cfg = hoja_(ss, 'Config', ['locales','categorias']);
+  if (cfg.getLastRow() < 2){
+    const n = Math.max(LOCALES_INICIALES.length, CATEGORIAS.length);
+    cfg.getRange(2, 1, n, 2).setValues(Array.from({length:n}, (_, i) => [LOCALES_INICIALES[i] || '', CATEGORIAS[i] || '']));
+  }
+  const sobra = ss.getSheetByName('Hoja 1') || ss.getSheetByName('Sheet1'); if (sobra && ss.getSheets().length > 1) ss.deleteSheet(sobra);
+
+  let carpeta = p.getProperty('FOLDER_ID') && abrir_(() => DriveApp.getFolderById(p.getProperty('FOLDER_ID')));
+  if (!carpeta){ carpeta = DriveApp.createFolder(NOMBRE_CARPETA); p.setProperty('FOLDER_ID', carpeta.getId()) }
+  marcarCambio_();
+
+  Logger.log('✅ Instalado en la cuenta: ' + yo);
+  Logger.log('📊 Hoja de cálculo: ' + ss.getUrl());
+  Logger.log('📁 Carpeta de fotos: ' + carpeta.getUrl());
+  Logger.log('➡️ Ahora: Implementar → Nueva implementación → Aplicación web (Ejecutar como: Yo · Acceso: Cualquier usuario)');
+}
+function abrir_(fn){ try{ return fn() }catch(e){ return null } }
+function hoja_(ss, nombre, cols){
+  let sh = ss.getSheetByName(nombre);
+  if (!sh) sh = ss.insertSheet(nombre);
+  const actuales = sh.getLastColumn() ? sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].filter(String) : [];
+  const faltan = cols.filter(c => actuales.indexOf(c) < 0);
+  if (faltan.length) sh.getRange(1, actuales.length + 1, 1, faltan.length).setValues([faltan]);
+  sh.setFrozenRows(1); sh.getRange(1, 1, 1, sh.getLastColumn()).setFontWeight('bold');
+  // Texto en las columnas no numéricas: que Sheets no convierta fechas ni números de albarán
+  sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].forEach((c, i) => {
+    if (NUMS.indexOf(c) < 0) sh.getRange(1, i + 1, sh.getMaxRows(), 1).setNumberFormat('@');
+  });
+  return sh;
+}
+
+/* ===================== ENTRADA HTTP ===================== */
+function doGet(e){
+  return responder_(() => {
+    comprobarClave_(e.parameter.key);
+    const a = e.parameter.action;
+    if (a === 'version') return { version: version_() };
+    if (a === 'data') return datos_();
+    if (a === 'ping') return { cuenta: Session.getEffectiveUser().getEmail() };
+    throw new Error('Acción desconocida: ' + a);
+  });
+}
+function doPost(e){
+  return responder_(() => {
+    const b = JSON.parse(e.postData.contents);
+    comprobarClave_(b.key);
+    if (b.action === 'scan') return escanear_(b);
+    const lock = LockService.getScriptLock(); lock.waitLock(30000);
+    try{
+      if (b.action === 'save')   return guardar_(b.albaran, b.lineas || []);
+      if (b.action === 'delete') return borrar_(b.id);
+    } finally { lock.releaseLock() }
+    throw new Error('Acción desconocida: ' + b.action);
+  });
+}
+function responder_(fn){
+  let out;
+  try{ out = Object.assign({ ok:true }, fn()) }catch(err){ out = { ok:false, error:String(err.message || err) } }
+  return ContentService.createTextOutput(JSON.stringify(out)).setMimeType(ContentService.MimeType.JSON);
+}
+function comprobarClave_(k){ if (!k || k !== CLAVE_ACCESO) throw new Error('Clave de acceso incorrecta') }
+function ss_(){
+  const id = PropertiesService.getScriptProperties().getProperty('SHEET_ID');
+  if (!id) throw new Error('Falta ejecutar setup() en el editor de Apps Script');
+  return SpreadsheetApp.openById(id);
+}
+function version_(){ return PropertiesService.getScriptProperties().getProperty('VERSION') || '0' }
+function marcarCambio_(){ PropertiesService.getScriptProperties().setProperty('VERSION', String(Date.now())) }
+
+/* ===================== LECTURA ===================== */
+function leer_(sh){
+  const v = sh.getDataRange().getValues(); const h = v.shift() || [];
+  return v.filter(r => r.some(String)).map(r => {
+    const o = {}; h.forEach((k, i) => { let x = r[i];
+      if (x instanceof Date) x = Utilities.formatDate(x, 'Europe/Madrid', k === 'creado' ? "yyyy-MM-dd'T'HH:mm:ss" : 'yyyy-MM-dd');
+      if (NUMS.indexOf(k) >= 0){ const n = Number(String(x).replace(',', '.')); x = x === '' || !isFinite(n) ? null : n }
+      o[k] = x }); return o });
+}
+function datos_(){
+  const ss = ss_(), p = PropertiesService.getScriptProperties();
+  const cfg = ss.getSheetByName('Config').getDataRange().getValues().slice(1);
+  return {
+    albaranes: leer_(ss.getSheetByName('Albaranes')),
+    lineas: leer_(ss.getSheetByName('Lineas')),
+    locales: cfg.map(r => String(r[0]).trim()).filter(String),
+    categorias: cfg.map(r => String(r[1]).trim()).filter(String),
+    sheetUrl: ss.getUrl(),
+    folderUrl: DriveApp.getFolderById(p.getProperty('FOLDER_ID')).getUrl(),
+    version: version_(),
+    cuenta: Session.getEffectiveUser().getEmail()
+  };
+}
+
+/* ===================== GUARDAR / BORRAR ===================== */
+function fila_(cols, o){ return cols.map(k => o[k] == null ? '' : (NUMS.indexOf(k) >= 0 ? Number(o[k]) : String(o[k]))) }
+function guardar_(a, lineas){
+  const ss = ss_(), shA = ss.getSheetByName('Albaranes'), shL = ss.getSheetByName('Lineas');
+  const colsA = shA.getRange(1, 1, 1, shA.getLastColumn()).getValues()[0];
+  const ids = shA.getLastRow() > 1 ? shA.getRange(2, 1, shA.getLastRow() - 1, 1).getValues().map(r => String(r[0])) : [];
+  const nuevo = !a.id || ids.indexOf(String(a.id)) < 0;
+  const id = nuevo ? 'A' + Utilities.formatDate(new Date(), 'Europe/Madrid', 'yyMMddHHmmss') + Math.random().toString(36).slice(2, 5) : String(a.id);
+  const reg = Object.assign({}, a, { id, fotos: [].concat(a.fotos || []).join(' ').trim(),
+    creado: nuevo ? Utilities.formatDate(new Date(), 'Europe/Madrid', "yyyy-MM-dd'T'HH:mm:ss") : a.creado });
+  if (nuevo) shA.appendRow(fila_(colsA, reg));
+  else shA.getRange(ids.indexOf(id) + 2, 1, 1, colsA.length).setValues([fila_(colsA, reg)]);
+
+  // Líneas: se reescriben las de este albarán
+  borrarLineas_(shL, id);
+  if (lineas.length){
+    const colsL = shL.getRange(1, 1, 1, shL.getLastColumn()).getValues()[0];
+    const filas = lineas.map((l, i) => fila_(colsL, Object.assign({}, l, { id_albaran:id, n:i + 1, fecha:reg.fecha, local:reg.local, proveedor:reg.proveedor, producto_norm:norm_(l.producto) })));
+    shL.getRange(shL.getLastRow() + 1, 1, filas.length, colsL.length).setValues(filas);
+  }
+  marcarCambio_();
+  return { id };
+}
+function borrarLineas_(shL, id){
+  if (shL.getLastRow() < 2) return;
+  const v = shL.getRange(2, 1, shL.getLastRow() - 1, shL.getLastColumn()).getValues();
+  const quedan = v.filter(r => String(r[0]) !== String(id));
+  if (quedan.length === v.length) return;
+  shL.getRange(2, 1, v.length, v[0].length).clearContent();
+  if (quedan.length) shL.getRange(2, 1, quedan.length, quedan[0].length).setValues(quedan);
+}
+function borrar_(id){
+  const ss = ss_(), shA = ss.getSheetByName('Albaranes');
+  const ids = shA.getLastRow() > 1 ? shA.getRange(2, 1, shA.getLastRow() - 1, 1).getValues().map(r => String(r[0])) : [];
+  const i = ids.indexOf(String(id)); if (i >= 0) shA.deleteRow(i + 2);
+  borrarLineas_(ss.getSheetByName('Lineas'), id);
+  marcarCambio_();
+  return {};
+}
+function norm_(s){ return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim() }
+
+/* ===================== ESCANEAR (fotos a Drive + IA) ===================== */
+function escanear_(b){
+  const p = PropertiesService.getScriptProperties();
+  const raiz = DriveApp.getFolderById(p.getProperty('FOLDER_ID'));
+  const mes = Utilities.formatDate(new Date(), 'Europe/Madrid', 'yyyy-MM');
+  const it = raiz.getFoldersByName(mes); const carpeta = it.hasNext() ? it.next() : raiz.createFolder(mes);
+  const sello = Utilities.formatDate(new Date(), 'Europe/Madrid', 'yyyyMMdd_HHmmss');
+  const imgs = b.images || [];
+  const fotos = imgs.map((im, i) => carpeta.createFile(Utilities.newBlob(Utilities.base64Decode(im.data), im.mimeType || 'image/jpeg',
+    `${sello}_${String(b.local || '').replace(/[^\wÁÉÍÓÚÑáéíóúñ ]/g, '')}_p${i + 1}.jpg`)).getUrl());
+  let data = {}, aiError = '';
+  try{ data = leerConIA_(imgs) }catch(e){ aiError = String(e.message || e).slice(0, 300) }
+  return { data, fotos, aiError };
+}
+
+function prompt_(){
+  // "Aprende": le pasamos cómo escribe cada proveedor sus productos (lo ya corregido y guardado)
+  let memoria = '';
+  try{
+    const lin = leer_(ss_().getSheetByName('Lineas')).slice(-1500);
+    const porProv = {};
+    lin.forEach(l => { const k = l.proveedor; (porProv[k] = porProv[k] || {})[l.producto + ' (' + (l.unidad || 'ud') + ', ' + l.categoria + ')'] = 1 });
+    memoria = Object.keys(porProv).slice(0, 60).map(k => '- ' + k + ': ' + Object.keys(porProv[k]).slice(0, 40).join('; ')).join('\n');
+  }catch(e){}
+  return `Eres un experto leyendo albaranes, tickets y facturas de proveedores de hostelería en España.
+Lee el documento de las imágenes (pueden ser varias páginas del MISMO documento) y devuelve SOLO un JSON válido con esta forma:
+{"tipo":"Albarán|Ticket|Factura","proveedor":"","cif":"","numero":"","fecha":"YYYY-MM-DD","base":0,"iva":0,"total":0,
+ "lineas":[{"producto":"","cantidad":0,"unidad":"kg|ud|l|caja…","precio_unitario":0,"descuento":0,"importe":0,"categoria":"","dudoso":false}],
+ "dudas":["texto breve de lo que no se lee bien"]}
+Reglas:
+- Números con punto decimal, sin símbolo €. Si un dato no aparece, pon null (no lo inventes).
+- importe = importe de la línea SIN IVA, ya con el descuento aplicado. base = suma sin IVA; iva = cuota total de IVA; total = importe final a pagar.
+- precio_unitario = precio por la unidad indicada (si pone 12,50 €/kg, unidad "kg").
+- categoria: una de ${JSON.stringify(CATEGORIAS)}.
+- "dudoso": true en la línea si algo está escrito a mano, tachado, borroso o no estás seguro. Explica en "dudas".
+- El proveedor es quien EMITE el documento, no el cliente que lo recibe.
+- Escribe los productos como los escribe el proveedor; si coincide con uno conocido de la lista de abajo, usa exactamente ese nombre.
+Productos ya conocidos por proveedor:
+${memoria || '(todavía ninguno)'}`;
+}
+
+function leerConIA_(imgs){
+  if (!imgs.length) throw new Error('No hay imágenes');
+  if (!CLAVE_IA || CLAVE_IA.indexOf('__') === 0) throw new Error('Falta la clave de la IA en el script');
+  const texto = PROVEEDOR_IA === 'claude' ? claude_(imgs) : gemini_(imgs);
+  const i = texto.indexOf('{'), j = texto.lastIndexOf('}');
+  if (i < 0 || j < i) throw new Error('La IA no devolvió datos');
+  return JSON.parse(texto.slice(i, j + 1));
+}
+function gemini_(imgs){
+  const body = { contents:[{ role:'user', parts: imgs.map(im => ({ inline_data:{ mime_type:im.mimeType || 'image/jpeg', data:im.data } })).concat([{ text:prompt_() }]) }],
+                 generationConfig:{ responseMimeType:'application/json', temperature:0 } };
+  let ultimo = '';
+  for (const m of MODELOS_GEMINI){
+    const r = UrlFetchApp.fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent`,
+      { method:'post', contentType:'application/json', headers:{ 'x-goog-api-key':CLAVE_IA }, payload:JSON.stringify(body), muteHttpExceptions:true });
+    const c = r.getResponseCode(), j = JSON.parse(r.getContentText() || '{}');
+    if (c === 200) return ((j.candidates || [])[0] || {}).content.parts.map(p => p.text || '').join('');
+    ultimo = (j.error && j.error.message) || ('HTTP ' + c);
+    if (c !== 404) break;           // solo probamos el siguiente modelo si este no existe
+  }
+  throw new Error('Gemini: ' + ultimo);
+}
+function claude_(imgs){
+  const content = imgs.map(im => ({ type:'image', source:{ type:'base64', media_type:im.mimeType || 'image/jpeg', data:im.data } })).concat([{ type:'text', text:prompt_() }]);
+  const r = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', { method:'post', contentType:'application/json', muteHttpExceptions:true,
+    headers:{ 'x-api-key':CLAVE_IA, 'anthropic-version':'2023-06-01' },
+    payload:JSON.stringify({ model:MODELO_CLAUDE, max_tokens:8000, messages:[{ role:'user', content }] }) });
+  const j = JSON.parse(r.getContentText() || '{}');
+  if (r.getResponseCode() !== 200) throw new Error('Claude: ' + ((j.error && j.error.message) || r.getResponseCode()));
+  return j.content.map(c => c.text || '').join('');
+}
+</script>
 <script>
 /* ===================== UTILIDADES ===================== */
 const $ = s => document.querySelector(s);
 const CFG0 = window.APP_CONFIG || {};
+/* Cuenta de Google en la que se guarda todo (Drive + Sheets). Se comprueba con lo que devuelve el Apps Script. */
+let CUENTA = { ok:null, email:'' };   // ok: true = coincide · false = otra cuenta · null = sin comprobar
+const real = v => v && !/PEGA_AQUI/.test(v) ? v : '';
 const CFG = {
-  get url(){ return localStorage.apiUrl || CFG0.apiUrl || '' },
-  get key(){ return localStorage.apiKey || '' },
-  get ready(){ return !!this.url },
+  get bloqueado(){ return !!(CFG0.bloquearAjustes && real(CFG0.apiUrl)) },
+  get url(){ return this.bloqueado ? CFG0.apiUrl : (localStorage.apiUrl || real(CFG0.apiUrl) || '') },
+  get key(){ return this.bloqueado ? real(CFG0.apiKey) : (localStorage.apiKey || real(CFG0.apiKey) || '') },
+  get ready(){ return !!this.url && CUENTA.ok !== false },
+  cuenta: String(CFG0.cuentaGoogle || '').trim().toLowerCase(),
   refresco: (CFG0.refrescoSegundos || 20) * 1000,
   umbral: CFG0.umbralAlertaPct ?? 5
 };
@@ -376,9 +697,15 @@ function setLive(state, txt){ const d=$('#liveDot'); d.className = 'dot' + (stat
 
 async function loadData(silent){
   try{
-    if (!CFG.ready){ setLive('off','Sin conectar') }
+    if (!CFG.url){ setLive('off','Sin conectar') }
     else {
       const j = await apiGet('data');
+      const cta = String(j.cuenta || '').trim().toLowerCase();
+      CUENTA = { email: cta, ok: !CFG.cuenta || !cta ? null : cta === CFG.cuenta };
+      if (CUENTA.ok === false){
+        clearInterval(pollTimer);
+        throw new Error(`esta conexión guarda en la cuenta ${cta}, no en ${CFG.cuenta}. Publica el Apps Script con ${CFG.cuenta} y pon su URL en config.js. No se guardará nada hasta corregirlo.`);
+      }
       DB = { ...j, locales: j.locales?.length ? j.locales : DEFAULT_LOCALES, categorias: j.categorias || DEFAULT_CATS };
       setLive('ok', 'En vivo · ' + new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}));
     }
@@ -386,6 +713,7 @@ async function loadData(silent){
     DB.lineas.forEach(l => { ['cantidad','precio_unitario','descuento','importe'].forEach(k => l[k] = pnum(l[k])); if (!l.producto_norm) l.producto_norm = norm(l.producto) });
     $('#errBanner').style.display='none';
     buildProducts(); fillSelects(); renderAll();
+    if (CFG.ready) procesarCola();
   }catch(e){
     setLive('err','Sin conexión'); if (!silent){ const b=$('#errBanner'); b.innerHTML='<b>No se pudo conectar:</b> '+esc(e.message)+' — revisa ⚙ Ajustes.'; b.style.display='block' }
   }
@@ -400,11 +728,12 @@ function startPolling(){
     try{
       const v = await apiGet('version');
       if (v.version !== DB.version){ await loadData(true); toast('🔄 Datos actualizados') }
-      else setLive('ok','En vivo · ' + new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}));
+      else { setLive('ok','En vivo · ' + new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'})); procesarCola() }
     }catch(e){ setLive('err','Reconectando…') }
   }, CFG.refresco);
 }
-document.addEventListener('visibilitychange', () => { if (!document.hidden && CFG.ready) loadData(true) });
+document.addEventListener('visibilitychange', () => { if (!document.hidden && CFG.url) loadData(true) });
+window.addEventListener('online', () => { if (CFG.url) loadData(true) });
 
 /* ===================== PRODUCTOS (agregación) ===================== */
 function buildProducts(){
@@ -462,8 +791,9 @@ function fillSelects(){
 /* ===================== ESCANEAR ===================== */
 let photos = []; // {data, mimeType, url}
 async function addPhotos(files){
+  cancelAuto(); $('#scanResult').innerHTML = '';
   for (const f of files){ try{ photos.push(await compress(f)) }catch(e){ toast('No se pudo leer la imagen') } }
-  renderPhotos();
+  renderPhotos(); programarEnvio();
 }
 function compress(file){
   return new Promise((res, rej) => {
@@ -511,23 +841,209 @@ function verFoto(i, src){
   const u = src || photos[i]?.url; if (!u) return;
   const v = $('#viewer'); v.querySelector('img').src = u; v.classList.add('on');
 }
-function resetScan(){ photos = []; $('#scanBusy').style.display='none'; renderPhotos() }
+function resetScan(){ cancelAuto(); photos = []; $('#scanBusy').style.display='none'; renderPhotos() }
+
+/* ===================== GUARDADO AUTOMÁTICO ===================== */
+const AUTO = {
+  get on(){ return localStorage.autoGuardado ? localStorage.autoGuardado === '1' : CFG0.autoGuardado !== false },
+  get espera(){ return CFG0.segundosAntesDeEnviar ?? 4 },
+  get tolerancia(){ return CFG0.toleranciaCuadrePct ?? 2 }
+};
+const REV_TAG = '⚠ POR REVISAR';
+/** Estado de un albarán. Se lee del campo "estado" y, si el Apps Script aún no lo guarda, de la marca en las notas. */
+function estadoDe(a){
+  const e = String(a.estado || '').trim();
+  if (e) return /revisar/i.test(e) ? 'Por revisar' : 'Validado';
+  return String(a.notas || '').startsWith(REV_TAG) ? 'Por revisar' : 'Validado';
+}
+const motivosDe = a => a.motivos || (String(a.notas||'').startsWith(REV_TAG) ? String(a.notas).slice(REV_TAG.length).replace(/^[:\s]+/,'').split(' | ')[0] : '');
+const notasSinMarca = n => String(n||'').startsWith(REV_TAG) ? String(n).split(' | ').slice(1).join(' | ') : String(n||'');
+
+let autoTimer = null;
+function cancelAuto(){ clearInterval(autoTimer); autoTimer = null; $('#autoBar').style.display = 'none'; $('#processBtn').textContent = '⚡ Leer albarán con IA' }
+function programarEnvio(){
+  cancelAuto();
+  if (!AUTO.on || !photos.length || !CFG.ready) return;
+  $('#processBtn').textContent = '⚡ Leer y guardar ya';
+  if (photos.some(p => p.calidad?.avisos.length)) return;   // foto dudosa: que decida la persona (repetir o seguir)
+  let n = AUTO.espera; $('#autoN').textContent = n; $('#autoBar').style.display = 'flex';
+  autoTimer = setInterval(() => { n--; $('#autoN').textContent = n; if (n <= 0){ cancelAuto(); processScan() } }, 1000);
+}
+
+/** Comprueba la lectura de la IA. Devuelve la lista de motivos por los que NO debe entrar directo (vacía = OK). */
+function validarAuto(d, aiError){
+  const m = [];
+  if (aiError) m.push('la IA no pudo leerlo (' + String(aiError).replace(/\|/g,'/') + ')');
+  if (!String(d.proveedor||'').trim()) m.push('no se lee el proveedor');
+  const f = String(d.fecha || '').slice(0,10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(f)) m.push('no se lee la fecha');
+  else { const dias = (Date.now() - new Date(f + 'T12:00')) / 864e5; if (dias < -1) m.push('la fecha es futura'); else if (dias > 120) m.push('la fecha es de hace más de 4 meses') }
+  const total = pnum(d.total), base = pnum(d.base), iva = pnum(d.iva);
+  if (!total) m.push('no se lee el total');
+  const ls = (d.lineas || []).filter(l => String(l.producto||'').trim());
+  if (!ls.length) m.push('no se leen productos');
+  else {
+    if (ls.some(l => pnum(l.importe) == null && (pnum(l.cantidad) == null || pnum(l.precio_unitario) == null))) m.push('hay productos sin importe');
+    const sum = ls.reduce((s,l) => s + (pnum(l.importe) ?? (pnum(l.cantidad)||0) * (pnum(l.precio_unitario)||0)), 0);
+    const ref = base ?? (total != null && iva != null ? total - iva : null);
+    const tol = r => Math.max(1, Math.abs(r) * AUTO.tolerancia / 100);
+    if (ref != null){ if (Math.abs(sum - ref) > tol(ref)) m.push(`los productos suman ${eur(sum)} y la base es ${eur(ref)}`) }
+    else if (total && sum > total + tol(total)) m.push(`los productos suman ${eur(sum)}, más que el total ${eur(total)}`);
+  }
+  if (base != null && iva != null && total != null && Math.abs(base + iva - total) > Math.max(0.5, total * 0.01)) m.push('base + IVA no da el total');
+  if (d.numero && DB.albaranes.some(x => norm(x.proveedor) === norm(d.proveedor) && String(x.numero).trim() === String(d.numero).trim())) m.push(`ya existe el nº ${d.numero} de este proveedor (¿duplicado?)`);
+  const dudoso = o => o && (o.dudoso || o.ilegible || o.revisar || (o.confianza != null && pnum(o.confianza) < 0.7));
+  if (dudoso(d) || (Array.isArray(d.dudas) && d.dudas.length) || ls.some(dudoso)) m.push('la IA marca datos dudosos');
+  return m;
+}
+
+/** Construye el albarán y sus líneas a partir de la lectura de la IA. */
+function montarDocumento(d, fotos, local, creado, motivos){
+  const lineas = (d.lineas || []).filter(l => String(l.producto||'').trim()).map(l => {
+    const cantidad = pnum(l.cantidad), precio = pnum(l.precio_unitario);
+    let importe = pnum(l.importe); if (importe == null && cantidad != null && precio != null) importe = Math.round(cantidad * precio * 100) / 100;
+    return { producto:String(l.producto).trim(), categoria:l.categoria || 'Otros', cantidad, unidad:String(l.unidad || 'ud').trim(), precio_unitario:precio, descuento:pnum(l.descuento) || 0, importe };
+  });
+  const iva = pnum(d.iva), base = pnum(d.base);
+  let total = pnum(d.total); if (total == null) total = Math.round((lineas.reduce((s,l)=>s+(l.importe||0),0) + (iva||0)) * 100) / 100;
+  const fecha = /^\d{4}-\d{2}-\d{2}/.test(String(d.fecha||'')) ? String(d.fecha).slice(0,10) : iso(new Date(creado));
+  const rev = motivos.length > 0, mot = motivos.join('; ');
+  const albaran = {
+    tipo: ['Albarán','Ticket','Factura'].includes(d.tipo) ? d.tipo : 'Albarán',
+    fecha, local, proveedor: String(d.proveedor||'').trim() || '(proveedor sin leer)', numero: d.numero || '', cif: d.cif || '',
+    base, iva, total, fotos,
+    estado: rev ? 'Por revisar' : 'Validado', motivos: mot,
+    notas: rev ? `${REV_TAG}: ${mot}` + (d.notas ? ' | ' + d.notas : '') : (d.notas || '')
+  };
+  return { albaran, lineas };
+}
+
+const esErrorRed = e => !navigator.onLine || e instanceof TypeError || /network|failed to fetch|load failed|conexi/i.test(e?.message || '');
+
+/**
+ * Procesa un albarán de principio a fin: sube fotos + lee con IA, valida y guarda.
+ * Si no hay conexión o falla, queda en la cola del móvil y se reintenta solo.
+ * Devuelve { estado:'Validado'|'Por revisar'|'cola'|'manual', ... }
+ */
+async function ejecutarTrabajo(job, interactivo){
+  ENCURSO.add(job.id);
+  try{
+    let doc = job.resultado;
+    if (!doc){
+      let r;
+      try{ r = await apiPost({ action:'scan', local:job.local, images:job.images }) }
+      catch(e){ await colaGuardar({ ...job, intentos:(job.intentos||0)+1, error:e.message, ultimo:new Date().toISOString() }); return { estado:'cola', error:e.message, red:esErrorRed(e) } }
+      const d = r.data || {};
+      if (interactivo && !AUTO.on){           // modo manual: abrir la revisión como antes
+        await colaBorrar(job.id);
+        if (r.aiError) toast('⚠️ La IA no pudo leerlo: ' + r.aiError + '. Rellénalo a mano.', 5000);
+        openReview({ ...d, local:job.local, fotos:r.fotos }, d.lineas || []);
+        return { estado:'manual' };
+      }
+      doc = montarDocumento(d, r.fotos, job.local, job.creado, validarAuto(d, r.aiError));
+    }
+    try{
+      const s = await apiPost({ action:'save', albaran:doc.albaran, lineas:doc.lineas });
+      await colaBorrar(job.id);
+      return { estado:doc.albaran.estado, id:s.id, doc };
+    }catch(e){
+      // Las fotos ya están en Drive: guardamos solo el resultado (sin imágenes) para no volver a subirlas
+      await colaGuardar({ id:job.id, local:job.local, creado:job.creado, paginas:job.paginas || job.images?.length || 0, resultado:doc, intentos:(job.intentos||0)+1, error:e.message, ultimo:new Date().toISOString() });
+      return { estado:'cola', error:e.message, red:esErrorRed(e) };
+    }
+  } finally { ENCURSO.delete(job.id) }
+}
 
 async function processScan(){
+  cancelAuto();
   const local = $('#scanLocal').value;
-  if (!CFG.ready){ toast('Primero conecta la app en ⚙ Ajustes', 4000); return }
-  $('#scanPhotos').style.display='none'; $('#scanBusy').style.display='block';
-  try{
-    const r = await apiPost({ action:'scan', local, images: photos.map(p => ({data:p.data, mimeType:p.mimeType})) });
-    if (r.aiError) toast('⚠️ La IA no pudo leerlo: ' + r.aiError + '. Rellénalo a mano.', 5000);
-    const d = r.data || {};
-    openReview({ ...d, local, fotos:r.fotos }, d.lineas || []);
-    photos = []; renderPhotos(); $('#scanBusy').style.display='none';
-  }catch(e){
-    $('#scanBusy').style.display='none'; $('#scanPhotos').style.display='block';
-    toast('Error: ' + e.message, 5000);
+  if (!CFG.ready){ toast(CUENTA.ok === false ? 'Cuenta de Google incorrecta: revisa ⚙ Ajustes' : 'Primero conecta la app en ⚙ Ajustes', 4000); return }
+  if (!photos.length) return;
+  const job = { id:'c' + Date.now(), local, creado:new Date().toISOString(), paginas:photos.length,
+                images: photos.map(p => ({ data:p.data, mimeType:p.mimeType })) };
+  // Se guarda primero en el móvil: si se corta la conexión o se cierra la app, no se pierde la foto
+  try{ await colaGuardar(job) }catch(e){}
+  photos = []; renderPhotos();
+  $('#scanStart').style.display='none'; $('#scanBusy').style.display='block'; $('#scanResult').innerHTML = '';
+  const res = await ejecutarTrabajo(job, true);
+  $('#scanBusy').style.display='none'; $('#scanStart').style.display='block';
+  if (res.estado === 'manual') return;
+  if (res.estado !== 'cola') await loadData(true);
+  mostrarResultado(res); renderCola();
+}
+
+function buscarGuardado(res){
+  if (!res.doc) return null;
+  const f = [].concat(res.doc.albaran.fotos || []).join(' ').split(/\s+/).filter(Boolean)[0];
+  return DB.albaranes.find(x => res.id && x.id === res.id) || (f && DB.albaranes.find(x => String(x.fotos||'').includes(f))) || null;
+}
+function mostrarResultado(res){
+  const box = $('#scanResult');
+  if (res.estado === 'cola'){
+    box.innerHTML = `<div class="result cola"><b>📤 ${res.red ? 'Sin conexión' : 'No se pudo enviar'}: el albarán queda guardado en este móvil.</b>
+      <div class="small muted">Se subirá solo en cuanto haya conexión. ${res.red ? '' : 'Detalle: ' + esc(res.error)}</div></div>`;
+    toast('📤 Guardado en el móvil, pendiente de subir', 4000); return;
+  }
+  const a = buscarGuardado(res), doc = res.doc.albaran;
+  const ver = a ? `<button class="btn sm${res.estado==='Por revisar'?'':' ghost'}" onclick="${res.estado==='Por revisar' ? `editAlbaran('${esc(a.id)}')` : `openAlbaran('${esc(a.id)}')`}">${res.estado==='Por revisar' ? 'Revisar ahora' : 'Ver'}</button>` : '';
+  if (res.estado === 'Validado'){
+    box.innerHTML = `<div class="result ok"><div class="row"><div class="grow"><b>✅ Guardado automáticamente</b>
+      <div class="small">${esc(doc.proveedor)} · ${fdate(doc.fecha)} · ${res.doc.lineas.length} productos · <b>${eur(doc.total)}</b></div></div>${ver}</div></div>`;
+    toast('✅ Albarán guardado');
+  } else {
+    box.innerHTML = `<div class="result rev"><div class="row"><div class="grow"><b>⚠ Guardado como POR REVISAR</b>
+      <div class="small">${esc(doc.proveedor)} · ${eur(doc.total)}</div><div class="small muted">Motivo: ${esc(doc.motivos)}</div></div>${ver}</div></div>`;
+    toast('⚠ Guardado como POR REVISAR', 3500);
   }
 }
+
+/* ===================== COLA EN EL MÓVIL (IndexedDB) ===================== */
+const ENCURSO = new Set();
+const IDB = {
+  db:null,
+  open(){ return this.db ||= new Promise((res, rej) => { const r = indexedDB.open('albaranes-cola', 1);
+    r.onupgradeneeded = () => r.result.createObjectStore('cola', { keyPath:'id' }); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error) }) },
+  async run(mode, fn){ const db = await this.open(); return new Promise((res, rej) => { const t = db.transaction('cola', mode); const q = fn(t.objectStore('cola'));
+    t.oncomplete = () => res(q?.result); t.onerror = () => rej(t.error) }) }
+};
+const colaGuardar = j => IDB.run('readwrite', s => s.put(j));
+const colaBorrar = id => IDB.run('readwrite', s => s.delete(id));
+const colaListar = async () => { try{ return (await IDB.run('readonly', s => s.getAll())) || [] }catch(e){ return [] } };
+
+let colaOcupada = false;
+async function procesarCola(forzar){
+  if (colaOcupada || !CFG.ready || !navigator.onLine) return renderCola();
+  colaOcupada = true; let hechos = 0, rev = 0;
+  try{
+    for (const job of await colaListar()){
+      if (ENCURSO.has(job.id)) continue;
+      // reintentos: inmediato las 3 primeras veces; después, cada 10 min (o al pulsar Reintentar)
+      if (!forzar && (job.intentos||0) >= 3 && job.ultimo && Date.now() - new Date(job.ultimo) < 10*60e3) continue;
+      const r = await ejecutarTrabajo(job, false);
+      if (r.estado === 'cola'){ if (r.red) break; continue }
+      hechos++; if (r.estado === 'Por revisar') rev++;
+    }
+  } finally { colaOcupada = false }
+  if (hechos){ await loadData(true); toast(`📤 ${hechos} albarán(es) pendientes subidos` + (rev ? ` · ${rev} por revisar` : ''), 4000) }
+  renderCola();
+}
+async function renderCola(){
+  const l = await colaListar(), c = $('#colaCard');
+  const visibles = l.filter(j => !ENCURSO.has(j.id));
+  if (!visibles.length){ c.style.display = 'none'; return }
+  c.style.display = 'block';
+  c.innerHTML = `<div class="row"><div class="grow"><b>📤 ${visibles.length} albarán(es) en el móvil sin subir</b>
+      <div class="small muted">Aún no están en la base de datos. Se suben solos cuando hay conexión.</div></div>
+      <button class="btn sm" onclick="procesarCola(true)">Reintentar</button></div>
+    <div class="list" style="margin-top:8px">${visibles.map(j => `<div class="item" style="cursor:default"><div class="grow">
+      <div class="t">${esc(j.resultado?.albaran.proveedor || 'Sin leer todavía')}</div>
+      <div class="small muted">${new Date(j.creado).toLocaleString('es-ES',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})} · ${esc(j.local)} · ${j.paginas || j.images?.length || 0} pág.${j.intentos ? ' · ' + j.intentos + ' intento(s)' : ''}</div>
+      ${j.error ? `<div class="small" style="color:var(--bad)">${esc(j.error)}</div>` : ''}</div>
+      ${j.images?.length ? `<button class="btn sm ghost" onclick="verCola('${j.id}')">👁</button>` : ''}
+      <button class="btn sm danger" onclick="borrarCola('${j.id}')">🗑</button></div>`).join('')}</div>`;
+}
+async function verCola(id){ const j = (await colaListar()).find(x => x.id === id); if (j?.images?.[0]) verFoto(null, `data:${j.images[0].mimeType};base64,${j.images[0].data}`) }
+async function borrarCola(id){ if (!confirm('¿Borrar este albarán del móvil? No se ha subido y se perderá la foto.')) return; await colaBorrar(id); renderCola() }
 
 /* ===================== REVISIÓN / EDICIÓN ===================== */
 let R = null; // documento en revisión
@@ -548,6 +1064,7 @@ function renderReview(){
   $('#sheet').innerHTML = `
   <div class="sheet-h"><h3>${a.id ? 'Editar documento' : 'Revisar y guardar'}</h3><button class="x" onclick="closeModal()">×</button></div>
   <div class="sheet-b">
+    ${a.id && estadoDe(a) === 'Por revisar' ? `<div class="banner"><b>⚠ Por revisar.</b> ${esc(motivosDe(a) || 'No pasó la validación automática.')}<br>Compara con la foto, corrige lo que haga falta y pulsa <b>Revisado</b>.</div>` : ''}
     ${dup ? `<div class="banner err">⚠️ Ya existe un documento de <b>${esc(dup.proveedor)}</b> con nº <b>${esc(dup.numero)}</b> (${fdate(dup.fecha)}, ${esc(dup.local)}). ¿Está duplicado?</div>` : ''}
     ${fotos.length ? `<div class="photos row" style="margin-bottom:10px">${fotos.map(u=>`<a href="${esc(u)}" target="_blank" class="btn sm ghost">📎 Ver foto en Drive</a>`).join('')}</div>` : ''}
     <div class="card">
@@ -569,9 +1086,10 @@ function renderReview(){
     ${Math.abs(diff) > 1 ? `<div class="banner">La suma de líneas (${eur(sumL)}) no cuadra con la base (${eur(ref)}). Diferencia: <b>${eur(diff)}</b>. Revisa los importes.</div>` : ''}
     ${R.lineas.map((l,i) => lineEditor(l,i,cats)).join('')}
 
-    <div class="card"><label class="f">Notas</label><textarea rows="2" oninput="R.a.notas=this.value">${esc(a.notas)}</textarea></div>
+    <div class="card"><label class="f">Notas</label><textarea rows="2" oninput="R.a.notas=this.value">${esc(notasSinMarca(a.notas))}</textarea></div>
     <div class="row">
-      <button class="btn grow" style="padding:15px;font-size:16px" id="saveBtn" onclick="saveReview()">✓ Guardar ${a.id?'cambios':'en la base de datos'}</button>
+      <button class="btn grow" style="padding:15px;font-size:16px" id="saveBtn" onclick="saveReview()">✓ ${a.id && estadoDe(a)==='Por revisar' ? 'Revisado: guardar como validado' : 'Guardar ' + (a.id?'cambios':'en la base de datos')}</button>
+      ${a.id && estadoDe(a)==='Por revisar' ? `<button class="btn sec" onclick="saveReview(true)">Guardar y dejar por revisar</button>` : ''}
       <button class="btn sec" onclick="closeModal()">Descartar</button>
     </div>
   </div>`;
@@ -602,8 +1120,11 @@ function setL(i,k,v){
   if (l.cantidad != null && l.precio_unitario != null) l.importe = Math.round(l.cantidad * l.precio_unitario * 100) / 100;
   renderReview();
 }
-async function saveReview(){
+async function saveReview(dejarPorRevisar){
   const a = R.a;
+  const notas = notasSinMarca(a.notas);
+  if (dejarPorRevisar){ const mot = motivosDe(a) || 'pendiente de revisar'; Object.assign(a, { estado:'Por revisar', motivos:mot, notas:`${REV_TAG}: ${mot}` + (notas ? ' | ' + notas : '') }) }
+  else Object.assign(a, { estado:'Validado', motivos:'', notas });
   if (!a.proveedor){ toast('Falta el proveedor'); return }
   if (!a.fecha){ toast('Falta la fecha'); return }
   if (a.total == null){ const s = R.lineas.reduce((s,l)=>s+(pnum(l.importe)||0),0); a.total = s + (pnum(a.iva)||0) }
@@ -626,16 +1147,20 @@ function albItem(a){
   return `<div class="item" onclick="openAlbaran('${esc(a.id)}')">
     <div class="grow"><div class="t">${esc(a.proveedor || 'Sin proveedor')}</div>
     <div class="small muted">${fdate(a.fecha)} · ${esc(a.local)}${a.numero?' · nº '+esc(a.numero):''}</div>
-    <div style="margin-top:3px"><span class="pill">${esc(a.tipo||'Albarán')}</span><span class="pill">${n} líneas</span>${a.fotos?'<span class="pill">📎 foto</span>':''}</div></div>
+    <div style="margin-top:3px">${estadoDe(a)==='Por revisar'?'<span class="pill rev">⚠ Por revisar</span>':''}<span class="pill">${esc(a.tipo||'Albarán')}</span><span class="pill">${n} líneas</span>${a.fotos?'<span class="pill">📎 foto</span>':''}</div></div>
     <div class="amt">${eur(a.total)}</div></div>`;
 }
 function renderRecent(){
   const l = DB.albaranes.slice().sort((a,b) => String(b.creado).localeCompare(String(a.creado))).slice(0,6);
   $('#recentList').innerHTML = l.length ? l.map(albItem).join('') : '<div class="empty">Aún no hay documentos. ¡Escanea el primero!</div>';
+  const nRev = DB.albaranes.filter(a => estadoDe(a) === 'Por revisar').length;
+  $('#pendCard').style.display = nRev ? 'block' : 'none';
+  $('#pendTxt').textContent = `⚠ ${nRev} albarán(es) por revisar`;
+  renderCola();
 }
 function filtAlbaranes(){
-  const q = norm($('#aSearch').value), loc = $('#aLocal').value, d1 = $('#aDesde').value, d2 = $('#aHasta').value, t = $('#aTipo').value;
-  return DB.albaranes.filter(a => (!loc || a.local === loc) && (!t || a.tipo === t) && (!d1 || a.fecha >= d1) && (!d2 || a.fecha <= d2) &&
+  const q = norm($('#aSearch').value), loc = $('#aLocal').value, d1 = $('#aDesde').value, d2 = $('#aHasta').value, t = $('#aTipo').value, est = $('#aEstado').value;
+  return DB.albaranes.filter(a => (!loc || a.local === loc) && (!t || a.tipo === t) && (!est || estadoDe(a) === est) && (!d1 || a.fecha >= d1) && (!d2 || a.fecha <= d2) &&
     (!q || norm(a.proveedor + ' ' + a.numero + ' ' + a.cif).includes(q) || DB.lineas.some(l => l.id_albaran === a.id && norm(l.producto).includes(q))))
     .sort((a,b) => (b.fecha||'').localeCompare(a.fecha||'') || String(b.creado).localeCompare(String(a.creado)));
 }
@@ -655,13 +1180,14 @@ function openAlbaran(id){
       <div><span class="muted">Tipo</span><br><b>${esc(a.tipo)}</b></div><div><span class="muted">Nº</span><br><b>${esc(a.numero||'—')}</b></div><div><span class="muted">Fecha</span><br><b>${fdate(a.fecha)}</b></div>
       <div style="grid-column:span 2"><span class="muted">Local</span><br><b>${esc(a.local)}</b></div><div><span class="muted">CIF</span><br><b>${esc(a.cif||'—')}</b></div>
       <div><span class="muted">Base</span><br><b>${a.base!=null?eur(a.base):'—'}</b></div><div><span class="muted">IVA</span><br><b>${a.iva!=null?eur(a.iva):'—'}</b></div><div><span class="muted">Total</span><br><b style="font-size:17px">${eur(a.total)}</b></div>
-    </div>${a.notas?`<p class="small" style="margin-bottom:0">📝 ${esc(a.notas)}</p>`:''}</div>
+    </div>${notasSinMarca(a.notas)?`<p class="small" style="margin-bottom:0">📝 ${esc(notasSinMarca(a.notas))}</p>`:''}</div>
+    ${estadoDe(a)==='Por revisar' ? `<div class="banner"><b>⚠ Por revisar:</b> ${esc(motivosDe(a))}</div>` : ''}
     ${fotos.length ? `<div class="row" style="margin-bottom:10px">${fotos.map((u,i)=>`<a class="btn sm ghost" href="${esc(u)}" target="_blank" style="text-decoration:none">📎 Foto ${i+1} en Drive ↗</a>`).join('')}</div>` : ''}
     <div class="tbl-wrap"><table><tr><th>Producto</th><th>Categoría</th><th class="n">Cant.</th><th>Ud</th><th class="n">Precio/ud</th><th class="n">Var.</th><th class="n">Importe</th></tr>
     ${ls.map(l => { const v = varVsPrev(l); return `<tr class="click" onclick="openProducto('${esc(pkey(l))}')"><td>${esc(l.producto)}</td><td>${esc(l.categoria)}</td><td class="n">${num(l.cantidad,3)}</td><td>${esc(l.unidad)}</td><td class="n">${eur4(l.precio_unitario)}</td><td class="n">${v==null?'—':`<span class="${v>0.001?'up':v<-0.001?'down':''}">${pct(v)}</span>`}</td><td class="n">${eur(l.importe)}</td></tr>` }).join('') || '<tr><td colspan="7" class="muted">Sin líneas de producto</td></tr>'}
     </table></div>
     <div class="row" style="margin-top:14px">
-      <button class="btn" onclick="editAlbaran('${esc(a.id)}')">✏️ Editar</button>
+      <button class="btn" onclick="editAlbaran('${esc(a.id)}')">${estadoDe(a)==='Por revisar' ? '✏️ Revisar' : '✏️ Editar'}</button>
       <button class="btn danger" onclick="deleteAlbaran('${esc(a.id)}')">🗑 Eliminar</button>
     </div>
   </div>`;
@@ -823,12 +1349,24 @@ function drawChart(id, cfg){ charts[id]?.destroy(); charts[id] = new Chart($('#'
 
 /* ===================== AJUSTES / EXPORTAR ===================== */
 function renderAjustes(){
-  $('#cfgUrl').value = localStorage.apiUrl || CFG0.apiUrl || ''; $('#cfgKey').value = CFG.key;
+  $('#cfgUrl').value = CFG.url; $('#cfgKey').value = CFG.key;
+  const lock = CFG.bloqueado;
+  $('#cfgUrl').disabled = $('#cfgKey').disabled = lock; $('#cfgSaveBtn').style.display = lock ? 'none' : '';
+  $('#cfgLockMsg').style.display = lock ? 'block' : 'none';
+  $('#cfgAuto').checked = AUTO.on;
+  const cb = $('#cuentaBox');
+  if (!CFG.url) cb.innerHTML = '';
+  else if (CUENTA.ok === true) cb.innerHTML = `<div class="cuenta">✅ Vinculada a <b>${esc(CUENTA.email)}</b></div>`;
+  else if (CUENTA.ok === false) cb.innerHTML = `<div class="cuenta mal">⛔ Esta URL guarda en <b>${esc(CUENTA.email)}</b>, no en <b>${esc(CFG.cuenta)}</b>. No se guardará nada.</div>`;
+  else if (CUENTA.email) cb.innerHTML = `<div class="cuenta">Guardando en <b>${esc(CUENTA.email)}</b></div>`;
+  else cb.innerHTML = `<div class="cuenta nd">ℹ️ No se puede comprobar la cuenta${CFG.cuenta ? ' (' + esc(CFG.cuenta) + ')' : ''}: falta añadir <code>cuenta</code> en el Apps Script.</div>`;
   const s = $('#sheetLink'), f = $('#folderLink');
   s.style.display = DB.sheetUrl ? 'inline-flex' : 'none'; s.href = DB.sheetUrl || '#';
   f.style.display = DB.folderUrl ? 'inline-flex' : 'none'; f.href = DB.folderUrl || '#';
 }
 async function saveCfg(){
+  if (CFG.bloqueado) return;
+  CUENTA = { ok:null, email:'' };
   localStorage.apiUrl = $('#cfgUrl').value.trim(); localStorage.apiKey = $('#cfgKey').value.trim();
   if (!localStorage.apiUrl){ toast('Pega la URL de la aplicación web'); return }
   setLive('off','Conectando…'); await loadData(); startPolling();
@@ -837,7 +1375,7 @@ async function saveCfg(){
 }
 function openExport(){ go('ajustes') }
 
-function rowsAlb(list){ return list.map(a => ({ ID:a.id, Registrado:a.creado, Local:a.local, Tipo:a.tipo, Proveedor:a.proveedor, CIF:a.cif, 'Nº':a.numero, Fecha:a.fecha, Base:a.base, IVA:a.iva, Total:a.total, Fotos:a.fotos, Notas:a.notas })) }
+function rowsAlb(list){ return list.map(a => ({ ID:a.id, Registrado:a.creado, Estado:estadoDe(a), Motivo:motivosDe(a), Local:a.local, Tipo:a.tipo, Proveedor:a.proveedor, CIF:a.cif, 'Nº':a.numero, Fecha:a.fecha, Base:a.base, IVA:a.iva, Total:a.total, Fotos:a.fotos, Notas:notasSinMarca(a.notas) })) }
 function rowsLin(list){ return list.map(l => ({ 'ID albarán':l.id_albaran, Línea:l.n, Fecha:l.fecha, Local:l.local, Proveedor:l.proveedor, Producto:l.producto, Categoría:l.categoria, Cantidad:l.cantidad, Unidad:l.unidad, 'Precio/ud':l.precio_unitario, 'Dto %':l.descuento, Importe:l.importe, 'Var. vs anterior %': (v => v==null?null:Math.round(v*1000)/10)(varVsPrev(l)) })) }
 function rowsProd(){ return [...PROD.values()].map(p => ({ Producto:p.nombre, Unidad:p.unidad, Categoría:p.categoria, 'Último proveedor':p.last.proveedor, 'Última compra':p.last.fecha, 'Último precio':p.lastPrice, 'Precio anterior':p.prevPrice, 'Variación %':p.var==null?null:Math.round(p.var*1000)/10, 'Precio medio':Math.round(p.avg*10000)/10000, Mínimo:p.min, Máximo:p.max, Compras:p.n, Cantidad:p.qty, Gasto:Math.round(p.gasto*100)/100, Proveedores:p.proveedores.join(', '), Locales:p.locales.join(', ') })) }
 function xlsx(sheets, name){
@@ -863,6 +1401,123 @@ function exportAnalisis(){
         ['Albaranes', rowsAlb(alb)], ['Líneas', rowsLin(lin)]], `analisis_${stamp()}.xlsx`);
 }
 
+/* ===================== ASISTENTE DE CONEXIÓN ===================== */
+const CUENTA_DEF = CFG.cuenta || 'david.alibiogestion@gmail.com';
+const ASI = (() => { let o = {}; try{ o = JSON.parse(localStorage.asistente || '{}') }catch(e){}
+  if (!o.clave){ const a = new Uint8Array(18); crypto.getRandomValues(a); o.clave = [...a].map(b => 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789'[b % 55]).join('') }
+  return Object.assign({ ia:'gemini', hechos:{}, url:'' }, o, { claveIA: sessionStorage.claveIA || '' }) })();
+function guardarAsi(){ const { claveIA, ...o } = ASI; localStorage.asistente = JSON.stringify(o); sessionStorage.claveIA = claveIA || '' }
+
+function codigoServidor(){
+  return $('#gsCode').textContent.trim()
+    .replace('__CUENTA__', CUENTA_DEF).replace('__CLAVE_ACCESO__', ASI.clave)
+    .replace('__PROVEEDOR_IA__', ASI.ia).replace('__CLAVE_IA__', (ASI.claveIA || '').replace(/['\\\s]/g, '')) + '\n';
+}
+async function copiar(txt, msg){
+  try{ await navigator.clipboard.writeText(txt) }
+  catch(e){ const t = document.createElement('textarea'); t.value = txt; document.body.appendChild(t); t.select(); document.execCommand('copy'); t.remove() }
+  toast(msg || '📋 Copiado');
+}
+function descargar(nombre, txt, tipo){ const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([txt], { type:tipo || 'text/plain' })); a.download = nombre; a.click() }
+function hecho(n, v){ ASI.hechos[n] = v; ASI.ver = null; guardarAsi(); renderAsistente() }
+
+function abrirAsistente(){ renderAsistente(); $('#modal').classList.add('on') }
+function renderAsistente(){
+  const H = ASI.hechos, actual = ASI.ver || [1,2,3,4,5].find(n => !H[n]) || 6;
+  const paso = (n, titulo, cuerpo) => `<div class="paso ${H[n]?'ok':''} ${actual===n?'act':''}">
+    <div class="row"><span class="num">${H[n]?'✓':n}</span><b class="grow" style="cursor:pointer" onclick="ASI.ver=${n};renderAsistente()">${titulo}</b>
+    ${n<5 ? `<label class="small row" style="gap:5px"><input type="checkbox" style="width:auto;min-height:0" ${H[n]?'checked':''} onchange="hecho(${n},this.checked)"> Hecho</label>` : ''}</div>
+    <div class="pc">${cuerpo}</div></div>`;
+  const keyLink = ASI.ia === 'claude' ? 'https://console.anthropic.com/settings/keys' : 'https://aistudio.google.com/apikey';
+  $('#sheet').innerHTML = `
+  <div class="sheet-h"><h3>🧭 Conectar con Google Drive</h3><button class="x" onclick="closeModal()">×</button></div>
+  <div class="sheet-b asis">
+    <p class="small muted" style="margin-top:0">Hazlo desde un <b>ordenador</b>. Al terminar, todo lo que se escanee se guardará en el Drive de <b>${esc(CUENTA_DEF)}</b>.</p>
+
+    ${paso(1, 'Abre Apps Script con la cuenta correcta', `
+      <ol><li>Si en ese navegador tienes otras cuentas de Google, abre mejor una <b>ventana de incógnito</b> e inicia sesión solo con <b>${esc(CUENTA_DEF)}</b>.</li>
+      <li>Pulsa el botón: se crea un proyecto nuevo vacío.</li>
+      <li>Arriba a la izquierda, donde pone "Proyecto sin título", ponle de nombre <b>Albaranes</b>.</li></ol>
+      <a class="btn" href="https://script.google.com/home/projects/create" target="_blank" rel="noopener" onclick="hecho(1,true)">Abrir Apps Script ↗</a>`)}
+
+    ${paso(2, 'Pega el código del servidor', `
+      <p class="small" style="margin-top:0">Primero, la clave de la IA que lee los albaranes (se mete dentro del código):</p>
+      <div class="grid3" style="grid-template-columns:1fr 2fr">
+        <select onchange="ASI.ia=this.value;guardarAsi();renderAsistente()"><option value="gemini" ${ASI.ia==='gemini'?'selected':''}>Gemini (Google)</option><option value="claude" ${ASI.ia==='claude'?'selected':''}>Claude (Anthropic)</option></select>
+        <input placeholder="Pega aquí la clave de la API" value="${esc(ASI.claveIA)}" oninput="ASI.claveIA=this.value.trim();guardarAsi()" autocomplete="off">
+      </div>
+      <p class="small muted">¿No la tienes? <a href="${keyLink}" target="_blank" rel="noopener">Sácala aquí ↗</a>${ASI.ia==='gemini' ? ' (con la misma cuenta de Google, botón "Create API key")' : ''}.</p>
+      <ol><li>Pulsa <b>Copiar código</b>.</li>
+      <li>En Apps Script, haz clic dentro del archivo <b>Code.gs</b>, selecciona todo (<b>Ctrl+A</b> o ⌘+A) y pega (<b>Ctrl+V</b>), sustituyendo lo que había.</li>
+      <li>Guarda con el icono 💾 (o Ctrl+S).</li></ol>
+      <div class="row"><button class="btn" onclick="if(!ASI.claveIA&&!confirm('No has puesto la clave de la IA: la app guardará las fotos pero no podrá leerlas (todo irá a POR REVISAR). ¿Copiar igualmente?'))return;copiar(codigoServidor(),'📋 Código copiado: pégalo en Code.gs');hecho(2,true)">📋 Copiar código</button>
+      <button class="btn ghost" onclick="descargar('Code.gs',codigoServidor())">⬇︎ Descargar Code.gs</button></div>`)}
+
+    ${paso(3, 'Ejecuta la instalación (setup)', `
+      <ol><li>En la barra de arriba del editor, en el desplegable de funciones, elige <b>setup</b> y pulsa <b>▶ Ejecutar</b>.</li>
+      <li>Saldrá <b>"Se necesita autorización"</b> → <b>Revisar permisos</b> → elige <b>${esc(CUENTA_DEF)}</b>.</li>
+      <li>Si sale <b>"Google no ha verificado esta aplicación"</b> es normal (la app es tuya): <b>Configuración avanzada</b> → <b>Ir a Albaranes (no seguro)</b> → <b>Permitir</b>.</li>
+      <li>Abajo, en el registro, debe salir <b>✅ Instalado</b> con los enlaces a la hoja y a la carpeta. Ya están en tu Drive.</li></ol>
+      <p class="small muted" style="margin:0">Si sale un error de cuenta, estás con otra cuenta de Google: vuelve al paso 1.</p>`)}
+
+    ${paso(4, 'Publícalo como aplicación web', `
+      <ol><li>Arriba a la derecha: <b>Implementar</b> → <b>Nueva implementación</b>.</li>
+      <li>Junto a "Seleccionar tipo", pulsa la rueda ⚙ → <b>Aplicación web</b>.</li>
+      <li><b>Ejecutar como:</b> Yo (${esc(CUENTA_DEF)}) · <b>Quién tiene acceso:</b> Cualquier usuario.</li>
+      <li>Pulsa <b>Implementar</b> y copia la <b>URL de la aplicación web</b> (termina en <code>/exec</code>).</li></ol>`)}
+
+    ${paso(5, 'Pega la URL y comprueba la conexión', `
+      <input id="asiUrl" placeholder="https://script.google.com/macros/s/…/exec" value="${esc(ASI.url)}" oninput="ASI.url=this.value.trim();guardarAsi()">
+      <div class="row" style="margin-top:10px"><button class="btn" onclick="probarConexion()">🔌 Probar y conectar</button></div>
+      <div id="asiRes" style="margin-top:10px">${H[5] ? `<div class="cuenta">✅ Conectada a ${esc(CUENTA.email || CUENTA_DEF)}</div>` : ''}</div>`)}
+
+    ${H[5] ? `<div class="paso ok act"><div class="row"><span class="num">★</span><b class="grow">Para que los demás móviles se conecten solos</b></div><div class="pc">
+      <p class="small" style="margin-top:0">Este móvil/ordenador ya está conectado. Para que <b>todos</b> los dispositivos queden vinculados sin tocar nada, sustituye el archivo <code>config.js</code> que está junto a la app por este:</p>
+      <div class="row"><button class="btn" onclick="descargar('config.js',configJs(),'text/javascript')">⬇︎ Descargar config.js</button><button class="btn ghost" onclick="copiar(configJs())">📋 Copiar</button></div></div></div>` : ''}
+
+    <details class="small" style="margin-top:12px"><summary><b>¿Para qué es la clave de acceso?</b></summary>
+      <p>Para que la app pueda subir albaranes desde cualquier móvil, la aplicación web se publica con acceso para <i>"cualquier usuario"</i>. La clave es la contraseña que comparten la app y el servidor: solo quien la tiene puede leer o guardar datos. Sin ella, aunque alguien consiga la URL, el servidor le responde "Clave de acceso incorrecta". El asistente la genera solo y la mete en el código y en la app.</p>
+      <p>Tu clave: <code>${esc(ASI.clave)}</code> <a href="#" onclick="if(confirm('¿Generar una clave nueva? Tendrás que volver a copiar el código (paso 2) y crear una nueva versión de la implementación.')){ASI.clave='';localStorage.asistente=JSON.stringify({...ASI,clave:undefined,claveIA:undefined});location.reload()}return false">cambiarla</a></p>
+    </details>
+  </div>`;
+}
+function configJs(){
+  return `window.APP_CONFIG = {
+  cuentaGoogle: '${CUENTA_DEF}',
+  apiUrl: '${ASI.url || CFG.url}',
+  apiKey: '${ASI.clave}',
+  bloquearAjustes: true,
+  autoGuardado: ${CFG0.autoGuardado !== false},
+  segundosAntesDeEnviar: ${CFG0.segundosAntesDeEnviar ?? 4},
+  toleranciaCuadrePct: ${CFG0.toleranciaCuadrePct ?? 2},
+  refrescoSegundos: ${CFG0.refrescoSegundos ?? 20},
+  umbralAlertaPct: ${CFG0.umbralAlertaPct ?? 5}
+};\n`;
+}
+async function probarConexion(){
+  const out = $('#asiRes'), url = (ASI.url || '').trim();
+  const msg = (cls, html) => out.innerHTML = `<div class="cuenta ${cls}">${html}</div>`;
+  if (!/^https:\/\/script\.google\.com\/macros\/s\/.+\/exec$/.test(url)) return msg('mal', 'La URL no es válida: debe empezar por <b>https://script.google.com/macros/s/</b> y terminar en <b>/exec</b> (paso 4).');
+  msg('nd', 'Probando…');
+  let j;
+  try{
+    const u = new URL(url); u.searchParams.set('action','data'); u.searchParams.set('key', ASI.clave);
+    j = await (await fetch(u, { redirect:'follow' })).json();
+  }catch(e){ return msg('mal', 'No responde. Revisa que en el paso 4 pusiste <b>Quién tiene acceso: Cualquier usuario</b> y que copiaste la URL completa.') }
+  if (!j.ok){
+    if (/clave/i.test(j.error)) return msg('mal', 'El servidor tiene otra clave. Vuelve a copiar el código (paso 2), guárdalo y en <b>Implementar → Gestionar implementaciones → ✏️ → Versión: Nueva versión</b>.');
+    if (/setup/i.test(j.error)) return msg('mal', 'Falta ejecutar <b>setup</b> (paso 3).');
+    return msg('mal', 'Error del servidor: ' + esc(j.error));
+  }
+  const cta = String(j.cuenta || '').toLowerCase();
+  if (cta && cta !== CUENTA_DEF.toLowerCase()) return msg('mal', `⛔ Está publicado con <b>${esc(cta)}</b>, no con <b>${esc(CUENTA_DEF)}</b>. Repite los pasos con la cuenta correcta.`);
+  if (CFG.bloqueado && (CFG0.apiUrl !== url || CFG0.apiKey !== ASI.clave)) toast('Ojo: config.js tiene otra conexión fijada. Descarga el config.js nuevo (abajo).', 6000);
+  localStorage.apiUrl = url; localStorage.apiKey = ASI.clave; CUENTA = { ok:null, email:'' };
+  ASI.hechos = { 1:true, 2:true, 3:true, 4:true, 5:true }; guardarAsi();
+  await loadData(); startPolling();
+  renderAsistente(); toast('✅ Conectado a Google Drive');
+}
+
 /* ===================== ARRANQUE ===================== */
 (async function init(){
   fillSelects();
@@ -872,6 +1527,7 @@ function exportAnalisis(){
   const p = localStorage.preset ?? 'mes';
   if (p){ setPresetSilent(p) }
   await loadData(); startPolling();
+  if (!CFG.url) abrirAsistente();
 })();
 function setPresetSilent(p){
   const t = new Date(), y = t.getFullYear(), m = t.getMonth(); let d1='', d2=iso(t);
