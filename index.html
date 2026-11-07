@@ -179,12 +179,13 @@ header .hbtn{flex:0 0 auto}
 @media(max-width:480px){#liveTxt{display:none}header h1{min-width:0}}
 .tb{max-width:88%;padding:9px 12px;border-radius:14px;margin:6px 0;font-size:14px;white-space:pre-wrap}.tb.u{background:var(--brand);color:#fff;margin-left:auto}.tb.t{background:#fff;border:1px solid var(--line)}.tb .btn{margin:6px 6px 0 0}
 #tMsgs{min-height:180px;max-height:52vh;overflow:auto}
+#pygTable tr.sub1 td{font-size:13px}#pygTable tr.sub1 td:first-child{padding-left:22px;color:var(--ink2)}
 </style>
 </head>
 <body>
 
 <header>
-  <h1>Control de Albaranes<small id="subt">Grupo · gastos y producto · Versión 7.11.2026</small></h1>
+  <h1>Control de Albaranes<small id="subt">Grupo · gastos y producto · Versión 8.11.2026</small></h1>
   <div class="live" title="Sincronización"><span class="dot off" id="liveDot"></span><span id="liveTxt">—</span></div>
   <button class="hbtn" onclick="openExport()" title="Descargar base de datos">⬇︎</button>
   <button class="hbtn" onclick="abrirPuntos()" title="Puntos a resolver" style="font-size:16px">ⓘ<span class="badge" id="infoN" style="display:none"></span></button>
@@ -361,7 +362,7 @@ header .hbtn{flex:0 0 auto}
     </div>
     <div id="vPre" style="display:none">
       <div class="card"><h3 id="prTit">Añadir premisa</h3><div class="grid3">
-        <div><label class="f">Tipo</label><select id="prTipo" onchange="prTipoCambio()"><option value="venta">Ventas (diarias o semanales)</option><option value="compra">Compra de alimentación (repartida en semanas)</option><option value="personal">Costes de personal (mes)</option><option value="fijos">Gastos fijos (mes)</option></select></div>
+        <div><label class="f">Tipo</label><select id="prTipo" onchange="prTipoCambio()"><option value="venta">Ventas (diarias o semanales)</option><option value="compra">Compra de alimentación (repartida en semanas)</option><option value="extra">Extra (DJ, eventos…)</option><option value="personal">Costes de personal (mes)</option><option value="fijos">Gastos fijos (mes)</option></select></div>
         <div style="grid-column:span 2"><label class="f">Local</label><select id="prLocal"></select></div>
         <div class="prV"><label class="f">Desde</label><input type="date" id="prDesde"></div>
         <div class="prV"><label class="f">Hasta (vacío = un día)</label><input type="date" id="prHasta"></div>
@@ -374,7 +375,7 @@ header .hbtn{flex:0 0 auto}
         <div style="grid-column:1/-1"><label class="f">Nota</label><input id="prNota"></div>
       </div>
       <div class="row" style="margin-top:12px"><button class="btn grow" onclick="savePre()">✓ Guardar</button><button class="btn sec" onclick="resetPre()">Limpiar</button></div></div>
-      <div class="card"><div class="row"><h3 class="grow" style="margin:0">Premisas introducidas</h3><select id="prFiltro" style="width:auto" onchange="renderPre()"><option value="">Todas</option><option value="venta">Ventas</option><option value="personal">Personal</option><option value="fijos">Gastos fijos</option><option value="compra">Compras</option></select></div><div class="list" id="prList" style="margin-top:10px"></div></div>
+      <div class="card"><div class="row"><h3 class="grow" style="margin:0">Premisas introducidas</h3><button class="btn sm sec" onclick="abrirReplicar()">⧉ Replicar meses</button><select id="prFiltro" style="width:auto" onchange="renderPre()"><option value="">Todas</option><option value="venta">Ventas</option><option value="personal">Personal</option><option value="fijos">Gastos fijos</option><option value="compra">Compras</option><option value="extra">Extras</option></select></div><div class="list" id="prList" style="margin-top:10px"></div></div>
     </div>
   </section>
 
@@ -448,7 +449,7 @@ const MODELO_CLAUDE  = 'claude-sonnet-5-5';
 const NOMBRE_HOJA    = 'Control de Albaranes · Base de datos';
 const NOMBRE_CARPETA = 'Control de Albaranes · Fotos';
 const LOCALES_INICIALES = ['Explotaciones de Hostelería Caleta','Santo y Seña Gestión','El Santo Gestión','St3','Somos de Santoña','Alibio Gestión'];
-const CATEGORIAS = ['Pescado y marisco','Carne','Frutas y verduras','Lácteos y huevos','Panadería y bollería','Alimentación seca','Congelados','Bebidas','Vinos y licores','Café e infusiones','Limpieza','Menaje y desechables','Mantenimiento','Otros'];
+const CATEGORIAS = ['Pescado y marisco','Carne','Frutas y verduras','Lácteos y huevos','Panadería y bollería','Alimentación seca','Congelados','Bebidas','Vinos y licores','Café e infusiones','Limpieza','Menaje y desechables','Mantenimiento','Supermercado','Extras','Otros'];
 
 const COL_ALB = ['id','creado','local','tipo','proveedor','cif','numero','fecha','base','iva','total','fotos','notas','estado','motivos'];
 const COL_LIN = ['id_albaran','n','fecha','local','proveedor','producto','producto_norm','categoria','cantidad','unidad','precio_unitario','descuento','importe'];
@@ -678,7 +679,7 @@ Reglas:
 - Números con punto decimal, sin símbolo €. Si un dato no aparece, pon null (no lo inventes).
 - importe = importe de la línea SIN IVA, ya con el descuento aplicado. base = suma sin IVA; iva = cuota total de IVA; total = importe final a pagar.
 - precio_unitario = precio por la unidad indicada (si pone 12,50 €/kg, unidad "kg").
-- categoria: una de ${JSON.stringify(CATEGORIAS)}. Si no estás seguro de la familia de un producto, pon "familia_dudosa":true (no lo anotes en "dudas").
+- categoria: una de ${JSON.stringify(CATEGORIAS)}. Si no estás seguro de la familia de un producto, pon "familia_dudosa":true (no lo anotes en "dudas"). Usa "Extras" para servicios de evento (DJ, música, decoración, animación) y "Supermercado" para compras de supermercado.
 - "dudoso": true en la línea si algo está escrito a mano, tachado, borroso o no estás seguro. Explica en "dudas".
 - El proveedor es quien EMITE el documento, no el cliente que lo recibe.
 - tipo: "Factura" si pone FACTURA o tiene nº de factura, vencimiento o forma de pago; "Albarán" si es nota/albarán de entrega (suele poner ALBARÁN, sin vencimiento); "Ticket" si es un ticket de caja.
@@ -738,7 +739,7 @@ const CFG = {
 };
 const SERIES = ['--s1','--s2','--s3','--s4','--s5','--s6','--s7','--s8'].map(v => getComputedStyle(document.documentElement).getPropertyValue(v).trim());
 const DEFAULT_LOCALES = ['Explotaciones de Hostelería Caleta','Santo y Seña Gestión','El Santo Gestión','St3','Somos de Santoña','Alibio Gestión'];
-const DEFAULT_CATS = ['Pescado y marisco','Carne','Frutas y verduras','Lácteos y huevos','Panadería y bollería','Alimentación seca','Congelados','Bebidas','Vinos y licores','Café e infusiones','Limpieza','Menaje y desechables','Mantenimiento','Otros'];
+const DEFAULT_CATS = ['Pescado y marisco','Carne','Frutas y verduras','Lácteos y huevos','Panadería y bollería','Alimentación seca','Congelados','Bebidas','Vinos y licores','Café e infusiones','Limpieza','Menaje y desechables','Mantenimiento','Supermercado','Extras','Otros'];
 
 const eur = n => (isFinite(n) ? n : 0).toLocaleString('es-ES',{style:'currency',currency:'EUR'});
 const eur4 = n => (isFinite(n) ? n : 0).toLocaleString('es-ES',{style:'currency',currency:'EUR',minimumFractionDigits:2,maximumFractionDigits:4});
@@ -789,7 +790,7 @@ async function loadData(silent){
         clearInterval(pollTimer);
         throw new Error(`esta conexión guarda en la cuenta ${cta}, no en ${CFG.cuenta}. Publica el Apps Script con ${CFG.cuenta} y pon su URL en config.js. No se guardará nada hasta corregirlo.`);
       }
-      DB = { ...j, locales: j.locales?.length ? j.locales : DEFAULT_LOCALES, categorias: j.categorias || DEFAULT_CATS, premisas: j.premisas || [] };
+      DB = { ...j, locales: j.locales?.length ? j.locales : DEFAULT_LOCALES, categorias: [...new Set([...(j.categorias || DEFAULT_CATS), 'Supermercado', 'Extras'])], premisas: j.premisas || [] };
       setLive('ok', 'En vivo · ' + new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}));
     }
     DB.albaranes.forEach(a => { a.total = pnum(a.total)||0; a.base = pnum(a.base); a.iva = pnum(a.iva) });
@@ -1739,8 +1740,8 @@ function abrirPuntos(){
 
 /* ===================== ANÁLISIS FINANCIERO (PyG) ===================== */
 let PYG = null, PRE = { id:'', conc:'' }, PEXP = {};
-const CAT_BEBIDA = ['Bebidas','Vinos y licores'], CAT_OTROS = ['Limpieza','Menaje y desechables','Mantenimiento','Otros'];
-const grupoCat = c => CAT_BEBIDA.includes(c) ? 'bebida' : (!c || CAT_OTROS.includes(c)) ? 'otros' : 'comida';
+const CAT_BEBIDA = ['Bebidas','Vinos y licores'], CAT_OTROS = ['Limpieza','Menaje y desechables','Mantenimiento','Supermercado','Otros'];
+const grupoCat = c => CAT_BEBIDA.includes(c) ? 'bebida' : c === 'Extras' ? 'extras' : (!c || CAT_OTROS.includes(c)) ? 'otros' : 'comida';
 const dn = s => { const [y,m,d] = String(s).slice(0,10).split('-').map(Number); return Date.UTC(y,m-1,d)/864e5 };
 const dstr = n => new Date(n*864e5).toISOString().slice(0,10);
 const diasMes = ym => { const [y,m] = ym.split('-').map(Number); return new Date(Date.UTC(y,m,0)).getUTCDate() };
@@ -1763,47 +1764,81 @@ function pygPreset(p){
   if (p === '8s') $('#gGran').value = 'sem'; if (p === '6m' || p === 'anio') $('#gGran').value = 'mes';
   renderPyG();
 }
+const G6 = ['bebida','comida','otros','extras','personal','fijos'];
 function calcPyG(per, locs){
   const L = x => !locs.length || locs.includes(x);
   const ok = new Set(DB.albaranes.filter(a => estadoDe(a) !== 'Por revisar' && !sinPyG(a)).map(a => a.id)), conLin = new Set(DB.lineas.map(l => l.id_albaran));
   return per.map(p => {
-    const r = { ventas:0, comida:0, bebida:0, otros:0, personal:0, fijos:0, det:{ personal:{}, fijos:{} } };
+    const r = { ventas:0, det:{} }; G6.forEach(g => { r[g] = 0; r.det[g] = {} });
+    const add = (g, k, v) => { if (!v) return; r[g] += v; r.det[g][k] = (r.det[g][k] || 0) + v };
     for (const x of DB.premisas){ if (!L(x.local)) continue;
-      if ((x.tipo === 'venta' || x.tipo === 'compra') && x.desde){ const a = dn(x.desde), b = dn(x.hasta || x.desde); r[x.tipo === 'venta' ? 'ventas' : x.grupo === 'bebida' ? 'bebida' : 'comida'] += x.importe * solap(p.ini,p.fin,a,b) / (b-a+1) }
-      else if ((x.tipo === 'personal' || x.tipo === 'fijos') && x.mes){ const a = dn(x.mes + '-01'), dm = diasMes(x.mes); const v = x.importe * solap(p.ini,p.fin,a,a+dm-1) / dm; r[x.tipo] += v; if (v){ const c = x.concepto || 'Sin concepto'; r.det[x.tipo][c] = (r.det[x.tipo][c] || 0) + v } } }
-    for (const l of DB.lineas){ if (l._dup || !ok.has(l.id_albaran) || !L(l.local)) continue; const f = dn(l.fecha || '1970-01-01'); if (f >= p.ini && f <= p.fin) r[grupoCat(l.categoria)] += l.importe || 0 }
-    for (const a of DB.albaranes){ if (a._dup || !ok.has(a.id) || conLin.has(a.id) || !L(a.local) || CONC.links.get(a.id)?.L.length) continue; const f = dn(a.fecha); if (f >= p.ini && f <= p.fin) r.otros += a.base ?? a.total }
-    r.margen = r.ventas - r.comida - r.bebida; r.ebitda = r.margen - r.otros - r.personal - r.fijos; return r });
+      if ((x.tipo === 'venta' || x.tipo === 'compra' || x.tipo === 'extra') && x.desde){ const a = dn(x.desde), b = dn(x.hasta || x.desde), v = x.importe * solap(p.ini,p.fin,a,b) / (b-a+1);
+        if (x.tipo === 'venta') r.ventas += v; else if (x.tipo === 'extra') add('extras', '✍ ' + (x.concepto || 'Extra'), v); else add(x.grupo === 'bebida' ? 'bebida' : 'comida', '✍ ' + (x.concepto || 'Compra manual'), v) }
+      else if ((x.tipo === 'personal' || x.tipo === 'fijos') && x.mes){ const a = dn(x.mes + '-01'), dm = diasMes(x.mes); add(x.tipo, x.concepto || 'Sin concepto', x.importe * solap(p.ini,p.fin,a,a+dm-1) / dm) } }
+    for (const l of DB.lineas){ if (l._dup || !ok.has(l.id_albaran) || !L(l.local)) continue; const f = dn(l.fecha || '1970-01-01'); if (f < p.ini || f > p.fin) continue;
+      const g = grupoCat(l.categoria); add(g, g === 'extras' ? (l.producto || 'Extras') : (l.categoria || 'Sin familia'), l.importe || 0) }
+    for (const a of DB.albaranes){ if (a._dup || !ok.has(a.id) || conLin.has(a.id) || !L(a.local) || CONC.links.get(a.id)?.L.length) continue; const f = dn(a.fecha); if (f >= p.ini && f <= p.fin) add('otros', 'Sin detalle · ' + a.proveedor, a.base ?? a.total) }
+    r.compras = r.bebida + r.comida; r.ebitda = r.ventas - r.compras - r.otros - r.personal - r.fijos - r.extras; return r });
 }
-const FILAS = [['ventas','Ventas',1],['comida','Compras comida'],['bebida','Compras bebida'],['margen','Margen bruto',1],['otros','Otros aprovisionamientos'],['personal','Costes de personal'],['fijos','Gastos fijos'],['ebitda','EBITDA',1]];
+const FILAS = [{ k:'ventas', n:'Ventas', t:1 }, { k:'compras', n:'Compras totales', t:1 }, { k:'bebida', n:'Bebida', sub:1, exp:1 }, { k:'comida', n:'Comida', sub:1, exp:1 },
+  { k:'otros', n:'Otros gastos', exp:1 }, { k:'personal', n:'Costes de personal', exp:1 }, { k:'fijos', n:'Gastos fijos', exp:1 }, { k:'extras', n:'Extras', exp:1 }, { k:'ebitda', n:'EBITDA', t:1 }];
 function pygTog(k){ PEXP[k] = !PEXP[k]; renderPyG() }
-function pygConc(k, i){ const c = PYG.cs[k][i]; PRE.conc = c; pygVista('pre'); $('#prFiltro').value = k; renderPre() }
+const navPyg = (k, c) => k === 'personal' || k === 'fijos' || c.startsWith('✍ ');
+function pygConc(k, i){
+  const c = PYG.cs[k][i]; if (!navPyg(k, c)) return;
+  PRE.conc = c.startsWith('✍ ') ? c.slice(2) : c; pygVista('pre'); $('#prFiltro').value = { personal:'personal', fijos:'fijos', extras:'extra', bebida:'compra', comida:'compra' }[k]; renderPre();
+}
 function renderPyG(){
   if (!$('#gDesde').value || !$('#gHasta').value){ $('#gGran').value = 'mes'; return pygPreset('6m') }
   const d1 = $('#gDesde').value, d2 = $('#gHasta').value;
   if (d2 < d1){ $('#pygAviso').innerHTML = '<div class="banner err">La fecha "hasta" es anterior a "desde".</div>'; $('#pygTable').innerHTML = ''; return }
-  const per = periodosRango($('#gGran').value, d1, d2), R = calcPyG(per, sv('gLocal')), T = { det:{ personal:{}, fijos:{} } };
-  FILAS.forEach(([k]) => T[k] = R.reduce((s,r) => s + r[k], 0));
-  const cs = {}; ['personal','fijos'].forEach(k => { cs[k] = [...new Set(R.flatMap(r => Object.keys(r.det[k])))].sort(); cs[k].forEach(c => T.det[k][c] = R.reduce((s,r) => s + (r.det[k][c] || 0), 0)) });
+  const per = periodosRango($('#gGran').value, d1, d2), R = calcPyG(per, sv('gLocal')), T = { det:{} }, cs = {};
+  ['ventas','compras','ebitda',...G6].forEach(k => T[k] = R.reduce((s,r) => s + r[k], 0));
+  G6.forEach(g => { T.det[g] = {}; const nm = [...new Set(R.flatMap(r => Object.keys(r.det[g])))]; nm.forEach(c => T.det[g][c] = R.reduce((s,r) => s + (r.det[g][c] || 0), 0)); cs[g] = nm.sort((a,b) => T.det[g][b] - T.det[g][a]) });
   PYG = { per, R, T, cs };
   const cel = (v, vt, b, k) => `<td class="n">${b?'<b>':''}<span class="${k==='ebitda'?(v<0?'up':'down'):''}">${eur0(v)}</span>${b?'</b>':''}<div class="small muted">${vt ? num(v/vt*100,1) + ' %' : '—'}</div></td>`;
   let h = `<tr><th>Concepto</th>${per.map(p => `<th class="n">${esc(p.label)}</th>`).join('')}<th class="n">Total</th></tr>`;
-  for (const [k,n,b] of FILAS){
-    const ex = k === 'fijos' || k === 'personal';
-    h += `<tr class="${b?'tot':''}"><td ${ex ? `class="tg" onclick="pygTog('${k}')"` : ''}>${ex ? (PEXP[k] ? '▾ ' : '▸ ') : ''}${n}</td>${R.map(r => cel(r[k], r.ventas, b, k)).join('')}${cel(T[k], T.ventas, b, k)}</tr>`;
-    if (ex && PEXP[k]) h += cs[k].length ? cs[k].map((c,i) => `<tr class="sub"><td onclick="pygConc('${k}',${i})" title="Ver y editar">${esc(c)} ✏️</td>${R.map(r => cel(r.det[k][c] || 0, r.ventas)).join('')}${cel(T.det[k][c], T.ventas)}</tr>`).join('')
-      : `<tr class="sub"><td colspan="${per.length + 2}">Sin ${k === 'fijos' ? 'gastos fijos' : 'costes'} en estas fechas. Añádelos en Premisas.</td></tr>`;
+  for (const f of FILAS){
+    h += `<tr class="${f.t ? 'tot' : f.sub ? 'sub1' : ''}"><td ${f.exp ? `class="tg" onclick="pygTog('${f.k}')"` : ''}>${f.exp ? (PEXP[f.k] ? '▾ ' : '▸ ') : ''}${f.n}</td>${R.map(r => cel(r[f.k], r.ventas, f.t, f.k)).join('')}${cel(T[f.k], T.ventas, f.t, f.k)}</tr>`;
+    if (f.exp && PEXP[f.k]) h += cs[f.k].length ? cs[f.k].map((c,i) => `<tr class="sub"><td ${navPyg(f.k,c) ? `onclick="pygConc('${f.k}',${i})" title="Ver y editar"` : ''}>${esc(c)}${navPyg(f.k,c) ? ' ✏️' : ''}</td>${R.map(r => cel(r.det[f.k][c] || 0, r.ventas)).join('')}${cel(T.det[f.k][c], T.ventas)}</tr>`).join('')
+      : `<tr class="sub"><td colspan="${per.length + 2}">Sin ${f.n.toLowerCase()} en estas fechas.</td></tr>`;
   }
   $('#pygTable').innerHTML = h;
-  const sinV = per.filter((p,i) => !R[i].ventas).map(p => p.label), sinP = per.filter((p,i) => !R[i].personal).map(p => p.label);
-  const nf = DB.albaranes.filter(a => famDe(a).length).length;
-  $('#pygAviso').innerHTML = (nf ? `<div class="banner">🏷 ${nf} albarán(es) con familia por elegir: sus productos pueden estar mal repartidos. <a href="#" onclick="abrirPuntos();return false">Resolver</a></div>` : '') + (per.length >= 60 ? '<div class="banner">Se muestran como máximo 60 periodos: acorta las fechas.</div>' : '') + ((sinV.length || sinP.length) ? `<div class="banner">⚠ ${sinV.length ? 'Sin ventas en: <b>' + esc(sinV.join(', ')) + '</b>. ' : ''}${sinP.length ? 'Sin costes de personal en: <b>' + esc(sinP.join(', ')) + '</b>. ' : ''}El EBITDA de esos periodos no es fiable: <a href="#" onclick="pygVista('pre');return false">añadir premisas</a>.</div>` : '')
+  const sinV = per.filter((p,i) => !R[i].ventas).map(p => p.label), sinP = per.filter((p,i) => !R[i].personal).map(p => p.label), nf = DB.albaranes.filter(a => famDe(a).length).length;
+  $('#pygAviso').innerHTML = (nf ? `<div class="banner">🏷 ${nf} albarán(es) con familia por elegir: sus productos pueden estar mal repartidos. <a href="#" onclick="abrirPuntos();return false">Resolver</a></div>` : '') + (per.length >= 60 ? '<div class="banner">Se muestran como máximo 60 periodos: acorta las fechas.</div>' : '')
+    + ((sinV.length || sinP.length) ? `<div class="banner">⚠ ${sinV.length ? 'Sin ventas en: <b>' + esc(sinV.join(', ')) + '</b>. ' : ''}${sinP.length ? 'Sin costes de personal en: <b>' + esc(sinP.join(', ')) + '</b>. ' : ''}El EBITDA de esos periodos no es fiable: <a href="#" onclick="pygVista('pre');return false">añadir premisas</a>.</div>` : '')
     + (per.some(p => p.label.endsWith('*')) ? '<div class="small muted" style="margin-bottom:8px">* Periodo parcial: recortado a las fechas elegidas (los costes mensuales se reparten por días).</div>' : '');
 }
 function exportPyG(){
-  if (!PYG) return; const { per, R, T } = PYG;
-  const rows = FILAS.map(([k,n]) => { const o = { Concepto:n }; per.forEach((p,i) => { o[p.label + ' €'] = Math.round(R[i][k]); o[p.label + ' %'] = R[i].ventas ? Math.round(R[i][k]/R[i].ventas*1000)/10 : null }); o['Total €'] = Math.round(T[k]); o['Total %'] = T.ventas ? Math.round(T[k]/T.ventas*1000)/10 : null; return o });
+  if (!PYG) return; const { per, R, T, cs } = PYG, rows = [];
+  const fila = (n, g) => { const o = { Concepto:n }; per.forEach((p,i) => { const v = g(R[i]); o[p.label + ' €'] = Math.round(v); o[p.label + ' %'] = R[i].ventas ? Math.round(v / R[i].ventas * 1000) / 10 : null }); const t = g(T); o['Total €'] = Math.round(t); o['Total %'] = T.ventas ? Math.round(t / T.ventas * 1000) / 10 : null; rows.push(o) };
+  FILAS.forEach(f => { fila(f.n, r => r[f.k]); if (f.exp) cs[f.k].forEach(c => fila('    · ' + c, r => r.det[f.k][c] || 0)) });
   xlsx([['PyG', rows]], `PyG_${stamp()}.xlsx`);
+}
+function abrirReplicar(){
+  const m = iso(new Date()).slice(0,7);
+  $('#sheet').innerHTML = `<div class="sheet-h"><h3>⧉ Replicar costes mensuales</h3><button class="x" onclick="closeModal()">×</button></div><div class="sheet-b">
+    <p class="small muted" style="margin-top:0">Copia los <b>costes de personal y gastos fijos</b> de un mes a los siguientes. Después puedes editar cada importe. Lo que ya exista no se duplica.</p>
+    <div class="grid2"><div><label class="f">Mes que se copia</label><input type="month" id="rpDe" value="${m}"></div><div><label class="f">Replicar hasta (incluido)</label><input type="month" id="rpA"></div></div>
+    <div class="grid2" style="margin-top:10px"><div><label class="f">Local</label><select id="rpLoc"><option value="">Todos los locales</option>${DB.locales.map(l => `<option>${esc(l)}</option>`).join('')}</select></div>
+    <div><label class="f">Qué copiar</label><select id="rpTipo"><option value="">Personal y gastos fijos</option><option value="personal">Solo personal</option><option value="fijos">Solo gastos fijos</option></select></div></div>
+    <button class="btn" style="width:100%;margin-top:12px" id="rpBtn" onclick="replicarPre()">Replicar</button></div>`;
+  $('#modal').classList.add('on');
+}
+async function replicarPre(){
+  const de = $('#rpDe').value, a = $('#rpA').value, loc = $('#rpLoc').value, tp = $('#rpTipo').value;
+  if (!de || !a || a <= de){ toast('Elige un mes final posterior al mes que copias'); return }
+  const orig = DB.premisas.filter(x => (x.tipo === 'personal' || x.tipo === 'fijos') && x.mes === de && (!loc || x.local === loc) && (!tp || x.tipo === tp));
+  if (!orig.length){ toast('No hay costes en ' + de); return }
+  const meses = []; let [y,m] = de.split('-').map(Number);
+  for (let i = 0; i < 24; i++){ m++; if (m > 12){ m = 1; y++ } const k = y + '-' + String(m).padStart(2,'0'); if (k > a) break; meses.push(k) }
+  const nuevos = []; meses.forEach(mes => orig.forEach(x => { if (!DB.premisas.some(p => p.tipo === x.tipo && p.local === x.local && p.mes === mes && (p.concepto || '') === (x.concepto || ''))) nuevos.push({ ...x, id:'', mes }) }));
+  if (!nuevos.length){ toast('Ya está todo replicado'); return }
+  if (!confirm(`Se crearán ${nuevos.length} premisas en ${meses.length} mes(es). ¿Continuar?`)) return;
+  const b = $('#rpBtn'); b.disabled = true;
+  try{ for (let i = 0; i < nuevos.length; i++){ b.textContent = `Replicando ${i+1}/${nuevos.length}…`; await apiPost({ action:'savePrem', premisa:nuevos[i] }) }
+    await loadData(true); closeModal(); renderPre(); toast(`✅ ${nuevos.length} premisas creadas`) }
+  catch(e){ b.disabled = false; b.textContent = 'Replicar'; await loadData(true); toast('Error: ' + e.message, 5000) }
 }
 function pygVista(v){
   $('#vPyg').style.display = v === 'pyg' ? '' : 'none'; $('#vPre').style.display = v === 'pre' ? '' : 'none';
@@ -1811,19 +1846,19 @@ function pygVista(v){
   if (v === 'pre') renderPre(); else renderPyG();
 }
 function prTipoCambio(){
-  const t = $('#prTipo').value, V = { venta:['prDesde','prHasta'], compra:['prDesde','prGrupo','prSem','prConc'], personal:['prMes','prConc'], fijos:['prMes','prConc'] }[t];
+  const t = $('#prTipo').value, V = { venta:['prDesde','prHasta'], extra:['prDesde','prHasta','prConc'], compra:['prDesde','prGrupo','prSem','prConc'], personal:['prMes','prConc'], fijos:['prMes','prConc'] }[t];
   ['prDesde','prHasta','prMes','prConc','prGrupo','prSem'].forEach(i => $('#' + i).parentElement.style.display = V.includes(i) ? '' : 'none');
   $('#prHint').style.display = t === 'compra' ? '' : 'none';
-  $('#prDesde').previousElementSibling.textContent = t === 'compra' ? 'Fecha de la compra' : 'Desde';
+  $('#prDesde').previousElementSibling.textContent = t === 'compra' ? 'Fecha de la compra' : t === 'extra' ? 'Fecha' : 'Desde';
   $('#prConc').previousElementSibling.textContent = t === 'compra' ? 'Producto' : 'Concepto';
 }
 function resetPre(){ PRE.id = ''; $('#prTit').textContent = 'Añadir premisa'; ['prDesde','prHasta','prImp','prConc','prNota'].forEach(i => $('#'+i).value = ''); $('#prSem').value = 1; prTipoCambio() }
 function renderPre(){
   keepOpts($('#prLocal'), DB.locales); prTipoCambio();
   if (!$('#prMes').value) $('#prMes').value = iso(new Date()).slice(0,7);
-  const ft = $('#prFiltro').value, T = { venta:'Ventas', compra:'Compra', personal:'Personal', fijos:'Gasto fijo' };
+  const ft = $('#prFiltro').value, T = { venta:'Ventas', compra:'Compra', extra:'Extra', personal:'Personal', fijos:'Gasto fijo' };
   const l = DB.premisas.filter(x => (!ft || x.tipo === ft) && (!PRE.conc || (x.concepto || 'Sin concepto') === PRE.conc)).sort((a,b) => String(b.desde || b.mes).localeCompare(String(a.desde || a.mes))).slice(0,100);
-  $('#prList').innerHTML = (PRE.conc ? `<button class="btn sm sec" onclick="PRE.conc='';renderPre()">Concepto: ${esc(PRE.conc)} ✕</button>` : '') + l.map(x => `<div class="item" style="cursor:default"><div class="grow"><div class="t">${T[x.tipo]} · ${x.tipo === 'venta' ? fdate(x.desde) + (x.hasta && x.hasta !== x.desde ? ' → ' + fdate(x.hasta) : '') : x.tipo === 'compra' ? esc(x.grupo || 'comida') + ' · ' + esc(x.concepto || '') + ' · ' + (x.semanas || 1) + ' sem desde ' + fdate(x.desde) : esc(x.mes) + (x.concepto ? ' · ' + esc(x.concepto) : '')}</div>
+  $('#prList').innerHTML = (PRE.conc ? `<button class="btn sm sec" onclick="PRE.conc='';renderPre()">Concepto: ${esc(PRE.conc)} ✕</button>` : '') + l.map(x => `<div class="item" style="cursor:default"><div class="grow"><div class="t">${T[x.tipo]} · ${(x.tipo === 'venta' || x.tipo === 'extra') ? (x.tipo === 'extra' ? esc(x.concepto) + ' · ' : '') + fdate(x.desde) + (x.hasta && x.hasta !== x.desde ? ' → ' + fdate(x.hasta) : '') : x.tipo === 'compra' ? esc(x.grupo || 'comida') + ' · ' + esc(x.concepto || '') + ' · ' + (x.semanas || 1) + ' sem desde ' + fdate(x.desde) : esc(x.mes) + (x.concepto ? ' · ' + esc(x.concepto) : '')}</div>
     <div class="small muted">${esc(x.local)}${x.nota ? ' · ' + esc(x.nota) : ''}</div></div><div class="amt">${eur(x.importe)}</div>
     ${x.tipo === 'personal' || x.tipo === 'fijos' ? `<button class="btn sm ghost" title="Copiar al mes siguiente" onclick="copiarPre('${esc(x.id)}')">⧉</button>` : ''}<button class="btn sm ghost" onclick="editPre('${esc(x.id)}')">✏️</button><button class="btn sm danger" onclick="delPre('${esc(x.id)}')">🗑</button></div>`).join('') || '<div class="empty">Aún no hay premisas. Añade las ventas y los costes del mes.</div>';
 }
@@ -1845,10 +1880,10 @@ async function savePre(){
   if (t === 'compra'){ p.desde = $('#prDesde').value; p.grupo = $('#prGrupo').value; p.semanas = Math.max(1, Math.round(pnum($('#prSem').value) || 1)); p.mes = '';
     if (!p.desde){ toast('Pon la fecha de la compra'); return } if (!p.concepto){ toast('Pon el producto'); return }
     const a0 = dn(p.desde), lun = a0 - ((new Date(a0*864e5).getUTCDay() + 6) % 7); p.desde = dstr(lun); p.hasta = dstr(lun + 7*p.semanas - 1) }
-  else if (t === 'venta'){ p.desde = $('#prDesde').value; p.hasta = $('#prHasta').value || p.desde; p.mes = '';
+  else if (t === 'venta' || t === 'extra'){ if (t === 'extra' && !p.concepto){ toast('Pon el concepto del extra (p. ej. DJ)'); return } p.desde = $('#prDesde').value; p.hasta = $('#prHasta').value || p.desde; p.mes = '';
     if (!p.desde){ toast('Pon la fecha'); return } if (p.hasta < p.desde){ toast('"Hasta" es anterior a "Desde"'); return } }
   else { p.mes = $('#prMes').value; p.desde = p.hasta = ''; if (!p.mes){ toast('Pon el mes'); return } if (t === 'fijos' && !p.concepto){ toast('Pon el concepto del gasto fijo (p. ej. alquiler)'); return } }
-  const solapa = t !== 'compra' && DB.premisas.find(x => x.id !== p.id && x.tipo === t && x.local === p.local && (t === 'venta' ? (x.desde <= p.hasta && (x.hasta || x.desde) >= p.desde) : x.mes === p.mes && (x.concepto||'') === p.concepto));
+  const solapa = t !== 'compra' && t !== 'extra' && DB.premisas.find(x => x.id !== p.id && x.tipo === t && x.local === p.local && (t === 'venta' ? (x.desde <= p.hasta && (x.hasta || x.desde) >= p.desde) : x.mes === p.mes && (x.concepto||'') === p.concepto));
   if (solapa && !confirm('Ya hay una premisa igual en ese periodo (' + eur(solapa.importe) + '). Si guardas, se sumarán. ¿Guardar igualmente?')) return;
   try{ await apiPost({ action:'savePrem', premisa:p }); await loadData(true); toast('✅ Guardado');
     const sig = t === 'venta' && p.hasta === p.desde ? dstr(dn(p.desde) + 1) : ''; resetPre(); if (sig) $('#prDesde').value = sig; renderPre();
@@ -1862,8 +1897,8 @@ ALBARANES: lista con filtros de selección múltiple (local, tipo, estado), bús
 CONCILIACIÓN: albaranes y facturas se emparejan (por los nº de albarán que cita la factura o por importe) para no duplicar el gasto. En una factura se puede escribir a mano los albaranes que cita. Si faltan albaranes, sale un aviso en ⓘ.
 ⓘ PUNTOS A RESOLVER: avisos acumulados (por revisar, facturas que no cuadran, albaranes sin factura, posibles duplicados). Resolver abre el documento; Descartar lo oculta en ese móvil.
 PRODUCTOS: precio medio, último precio y variación por producto y proveedor. ANÁLISIS: gasto por local, proveedor y categoría, y alertas de subida de precio.
-PyG: cuenta de resultados por meses o semanas entre dos fechas (Fecha desde/hasta y atajos). Filas: Ventas, Compras comida, Compras bebida, Margen bruto, Otros aprovisionamientos, Costes de personal, Gastos fijos, EBITDA, con % sobre ventas. Al pulsar ▸ Gastos fijos o ▸ Costes de personal se despliega el detalle por concepto; tocar un concepto lleva a editarlo. Las compras salen de los escaneos, sin IVA.
-PREMISAS (dentro de PyG): ventas diarias o semanales (Desde/Hasta), compras manuales de alimentación (comida o bebida) repartidas en las semanas que cubren, costes de personal y gastos fijos mensuales (con concepto, p. ej. alquiler). Se pueden editar con ✏️, borrar con 🗑 y copiar al mes siguiente con ⧉. Los costes mensuales se reparten por días en las semanas.
+PyG: cuenta de resultados por meses o semanas entre dos fechas (Fecha desde/hasta y atajos). Filas: Ventas, Compras totales (Bebida y Comida), Otros gastos (menaje, limpieza, supermercado), Costes de personal, Gastos fijos, Extras (p. ej. DJ) y EBITDA, con % sobre ventas. Al pulsar ▸ en una partida se despliega el desglose (por familia, concepto o producto); tocar un concepto manual (✍), de personal o fijo lleva a editarlo. Las compras salen de los escaneos, sin IVA.
+PREMISAS (dentro de PyG): ventas diarias o semanales (Desde/Hasta), compras manuales de alimentación (comida o bebida) repartidas en las semanas que cubren, extras (DJ, eventos) con su fecha, costes de personal y gastos fijos mensuales (con concepto, p. ej. alquiler). Se pueden editar con ✏️, borrar con 🗑 y copiar al mes siguiente con ⧉. El botón "⧉ Replicar meses" copia los costes de personal y fijos de un mes a los siguientes. Los costes mensuales se reparten por días en las semanas.
 PyG Y ALBARANES: en un albarán, el botón "🚫 No aplicar en PyG" (también tras escanear) lo deja fuera de la PyG y "↩ Volver a aplicar" lo recupera. Si la IA duda de la familia (comida, bebida u otros) de algún producto, pregunta y eliges tú; si no lo resuelves queda como aviso en ⓘ. La app recuerda tu elección para ese producto.
 AJUSTES: descargar Excel/CSV, guardado automático, conexión con Google Drive.`;
 const TIT = { msgs: (() => { try{ return JSON.parse(localStorage.titanChat || '[]') }catch(e){ return [] } })(), busy:false };
