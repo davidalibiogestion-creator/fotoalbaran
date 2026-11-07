@@ -7,43 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Albaranes">
 <title>Control de Albaranes</title>
-<script>
-/* =====================================================================
-   CONFIGURACIÓN DE LA APP DE ALBARANES
-   Este archivo va junto a index.html. Lo que pongas aquí se aplica
-   a TODOS los móviles: nadie tiene que configurar nada a mano.
-   ===================================================================== */
-window.APP_CONFIG = {
-
-  /* --- Vinculación con Google Drive ------------------------------- */
-  // Cuenta de Google donde se guardan fotos, hoja de cálculo y base de datos.
-  // La app comprueba que el Apps Script esté publicado con esta cuenta;
-  // si no coincide, bloquea el guardado para que nada acabe en otra cuenta.
-  cuentaGoogle: 'david.alibiogestion@gmail.com',
-
-  // URL de la Aplicación web del Apps Script (publicado con la cuenta de arriba).
-  // Termina en /exec
-  apiUrl: 'https://script.google.com/macros/s/AKfycbxgQcRCndxR4BVCmmpRHyNwdnGA_maYUubuXrpkoAMmC2tUuXNCYW5t606X7IdJTRmP/exec',
-
-  // Clave de acceso que muestra setup() en el Apps Script.
-  apiKey: '',   // NO se pone aquí: el repositorio es público. Se escribe una vez en ⚙ Ajustes de cada móvil.
-
-  // true = la URL y la clave no se pueden cambiar desde ⚙ Ajustes en el móvil.
-  bloquearAjustes: false,
-
-  /* --- Escaneo ---------------------------------------------------- */
-  // Al hacer la foto se lee y se guarda solo (se puede desactivar en Ajustes de cada móvil).
-  autoGuardado: true,
-  // Segundos de margen tras la foto para añadir más páginas antes de enviarla.
-  segundosAntesDeEnviar: 4,
-  // Diferencia máxima (%) entre la suma de productos y la base imponible para darlo por bueno.
-  toleranciaCuadrePct: 2,
-
-  /* --- Otros ------------------------------------------------------ */
-  refrescoSegundos: 20,
-  umbralAlertaPct: 5
-};
-</script>
+<script src="config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <style>
@@ -137,7 +101,7 @@ tr.click{cursor:pointer}tr.click:hover td{background:#f8f7f3}
 
 /* ===== NAV ===== */
 nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
-nav .in{max-width:620px;margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr);height:var(--nav);align-items:end}
+nav .in{max-width:620px;margin:0 auto;display:grid;grid-template-columns:repeat(6,1fr);height:var(--nav);align-items:end}
 nav button{border:0;background:none;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;color:var(--muted);padding:8px 0 10px;cursor:pointer;font-weight:600}
 nav button svg{width:24px;height:24px}
 nav button.on{color:var(--brand)}
@@ -183,14 +147,48 @@ nav button.scan{color:var(--ink)}
 .asis code{background:#eceae3;padding:1px 5px;border-radius:5px;font-size:12.5px}
 .legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--ink2);margin-top:8px}
 .legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+
+/* ===== DESPLEGABLES MULTIOPCIÓN ===== */
+.ms{position:relative}
+.ms>button{width:100%;min-height:42px;text-align:left;border:1px solid var(--line);border-radius:10px;padding:10px 11px;background:#fff;display:flex;align-items:center;gap:6px;cursor:pointer}
+.ms>button span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ms>button::after{content:'▾';color:var(--muted)}
+.ms.has>button{border-color:var(--brand2);background:#eef5f1;font-weight:600}
+.ms .pop{display:none;position:absolute;z-index:40;left:0;top:calc(100% + 4px);min-width:100%;width:max-content;max-width:min(320px,85vw);background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 10px 28px rgba(0,0,0,.18);max-height:300px;overflow:auto;padding:6px}
+.ms.on .pop{display:block}
+.ms .acts{position:sticky;top:-6px;background:#fff;padding:4px 2px 6px;border-bottom:1px solid var(--line);margin-bottom:4px}
+.ms label{display:flex;gap:8px;align-items:center;padding:8px;border-radius:8px;cursor:pointer;font-size:14px}
+.ms label:hover{background:#f3f2ed}
+.ms label input{width:auto;min-height:0}
+
+/* ===== PUNTOS A RESOLVER ===== */
+.badge{display:inline-block;min-width:16px;padding:0 5px;margin-left:5px;border-radius:99px;background:var(--accent);color:var(--accent-ink);font-size:11px;font-weight:700}
+#avisos{position:fixed;right:10px;top:calc(58px + env(safe-area-inset-top));z-index:60;display:flex;flex-direction:column;gap:8px;width:min(340px,calc(100vw - 20px))}
+.aviso{background:#fff;border:1px solid var(--line);border-left:5px solid var(--accent);border-radius:12px;padding:10px 12px;box-shadow:0 8px 22px rgba(0,0,0,.2);animation:aIn .25s}
+.aviso .x{width:26px;height:26px;font-size:15px}
+@keyframes aIn{from{transform:translateY(-8px);opacity:0}}
+.pt{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:8px}
+
+/* ===== PyG ===== */
+.seg{display:flex;gap:6px;margin-bottom:12px}.seg button{flex:1;border:1px solid var(--line);background:#fff;border-radius:12px;padding:10px;font-weight:700;cursor:pointer}.seg button.on{background:var(--brand);color:#fff;border-color:var(--brand)}
+#pygTable td:first-child,#pygTable th:first-child{position:sticky;left:0;background:var(--surface);z-index:1;font-weight:650}
+#pygTable tr.tot td{background:#f3f2ed}#pygTable td .small{font-size:11px}
+#pygTable td.tg{cursor:pointer}#pygTable tr.sub td{background:#fafaf7;font-size:13px}#pygTable tr.sub td:first-child{background:#fafaf7;padding-left:22px;color:var(--ink2);cursor:pointer}
+/* ===== TITÁN ===== */
+header .hbtn{flex:0 0 auto}
+@media(max-width:480px){#liveTxt{display:none}header h1{min-width:0}}
+.tb{max-width:88%;padding:9px 12px;border-radius:14px;margin:6px 0;font-size:14px;white-space:pre-wrap}.tb.u{background:var(--brand);color:#fff;margin-left:auto}.tb.t{background:#fff;border:1px solid var(--line)}.tb .btn{margin:6px 6px 0 0}
+#tMsgs{min-height:180px;max-height:52vh;overflow:auto}
 </style>
 </head>
 <body>
 
 <header>
-  <h1>Control de Albaranes<small id="subt">Grupo · gastos y producto</small></h1>
+  <h1>Control de Albaranes<small id="subt">Grupo · gastos y producto · Versión 7.11.2026</small></h1>
   <div class="live" title="Sincronización"><span class="dot off" id="liveDot"></span><span id="liveTxt">—</span></div>
-  <button class="hbtn" onclick="openExport()" title="Descargar base de datos">⬇︎ BD</button>
+  <button class="hbtn" onclick="openExport()" title="Descargar base de datos">⬇︎</button>
+  <button class="hbtn" onclick="abrirPuntos()" title="Puntos a resolver" style="font-size:16px">ⓘ<span class="badge" id="infoN" style="display:none"></span></button>
+  <button class="hbtn" onclick="abrirTitan()" title="Titán, tu asistente">💬 Titán</button>
 </header>
 
 <main>
@@ -246,7 +244,7 @@ nav button.scan{color:var(--ink)}
 
     <div class="card" id="pendCard" style="display:none;border-color:#f1d9a6;background:#fffaf0">
       <div class="row"><div class="grow"><b id="pendTxt"></b><div class="small muted">Albaranes que no pasaron la validación automática: hay que revisarlos a mano con la foto</div></div>
-      <button class="btn sm" onclick="$('#aEstado').value='Por revisar';go('albaranes')">Revisar</button></div>
+      <button class="btn sm" onclick="setMs('aEstado',['Por revisar']);go('albaranes')">Revisar</button></div>
     </div>
 
     <details class="card tips">
@@ -344,6 +342,42 @@ nav button.scan{color:var(--ink)}
     </div>
   </section>
 
+  <!-- ============ ANÁLISIS FINANCIERO ============ -->
+  <section class="tab" id="t-pyg">
+    <h2>Análisis financiero</h2>
+    <div class="seg"><button id="sgPyg" class="on" onclick="pygVista('pyg')">PyG</button><button id="sgPre" onclick="pygVista('pre')">Premisas</button></div>
+    <div id="vPyg">
+      <div class="card"><div class="grid3">
+        <div><label class="f">Local</label><select id="gLocal" onchange="renderPyG()"></select></div>
+        <div><label class="f">Ver por</label><select id="gGran" onchange="renderPyG()"><option value="mes">Meses</option><option value="sem">Semanas</option></select></div>
+        <div></div>
+        <div><label class="f">Fecha desde</label><input type="date" id="gDesde" onchange="renderPyG()"></div>
+        <div><label class="f">Fecha hasta</label><input type="date" id="gHasta" onchange="renderPyG()"></div>
+      </div>
+      <div class="presets"><button onclick="pygPreset('mes')">Este mes</button><button onclick="pygPreset('mesant')">Mes anterior</button><button onclick="pygPreset('8s')">Últimas 8 semanas</button><button onclick="pygPreset('6m')">Últimos 6 meses</button><button onclick="pygPreset('anio')">Este año</button><button style="margin-left:auto" onclick="exportPyG()">⬇︎ Excel</button></div></div>
+      <div id="pygAviso"></div>
+      <div class="tbl-wrap"><table id="pygTable"></table></div>
+      <p class="small muted">Todo sin IVA. Las compras salen de los albaranes/facturas escaneados (sin duplicar los conciliados); ventas y costes, de <a href="#" onclick="pygVista('pre');return false">Premisas</a>. Los costes mensuales se reparten por días en las semanas.</p>
+    </div>
+    <div id="vPre" style="display:none">
+      <div class="card"><h3 id="prTit">Añadir premisa</h3><div class="grid3">
+        <div><label class="f">Tipo</label><select id="prTipo" onchange="prTipoCambio()"><option value="venta">Ventas (diarias o semanales)</option><option value="compra">Compra de alimentación (repartida en semanas)</option><option value="personal">Costes de personal (mes)</option><option value="fijos">Gastos fijos (mes)</option></select></div>
+        <div style="grid-column:span 2"><label class="f">Local</label><select id="prLocal"></select></div>
+        <div class="prV"><label class="f">Desde</label><input type="date" id="prDesde"></div>
+        <div class="prV"><label class="f">Hasta (vacío = un día)</label><input type="date" id="prHasta"></div>
+        <div class="prC"><label class="f">Mes</label><input type="month" id="prMes"></div>
+        <div class="prC"><label class="f">Concepto</label><input id="prConc" placeholder="p. ej. alquiler"></div>
+        <div><label class="f">Grupo</label><select id="prGrupo"><option value="comida">Comida</option><option value="bebida">Bebida</option></select></div>
+        <div><label class="f">Semanas que cubre</label><input id="prSem" inputmode="numeric" value="1"></div>
+        <div><label class="f">Importe sin IVA (€)</label><input id="prImp" inputmode="decimal"></div>
+        <div id="prHint" class="small muted" style="grid-column:1/-1;display:none">Se reparte a partes iguales por semanas completas (lunes a domingo), empezando en la semana de la compra.</div>
+        <div style="grid-column:1/-1"><label class="f">Nota</label><input id="prNota"></div>
+      </div>
+      <div class="row" style="margin-top:12px"><button class="btn grow" onclick="savePre()">✓ Guardar</button><button class="btn sec" onclick="resetPre()">Limpiar</button></div></div>
+      <div class="card"><div class="row"><h3 class="grow" style="margin:0">Premisas introducidas</h3><select id="prFiltro" style="width:auto" onchange="renderPre()"><option value="">Todas</option><option value="venta">Ventas</option><option value="personal">Personal</option><option value="fijos">Gastos fijos</option><option value="compra">Compras</option></select></div><div class="list" id="prList" style="margin-top:10px"></div></div>
+    </div>
+  </section>
+
   <!-- ============ AJUSTES ============ -->
   <section class="tab" id="t-ajustes">
     <h2>Ajustes y datos</h2>
@@ -382,14 +416,16 @@ nav button.scan{color:var(--ink)}
 </main>
 
 <nav><div class="in">
+  <button data-t="escanear" class="scan on" onclick="go('escanear')"><span class="circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></span>Escanear</button>
+  <button data-t="pyg" onclick="go('pyg')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 6H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>PyG</button>
+  <button data-t="analisis" onclick="go('analisis')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 16v-4M12 16V8M17 16v-7"/></svg>Análisis</button>
   <button data-t="albaranes" onclick="go('albaranes')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h6"/></svg>Albaranes</button>
   <button data-t="productos" onclick="go('productos')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="M3.3 7 12 12l8.7-5M12 22V12"/></svg>Productos</button>
-  <button data-t="escanear" class="scan on" onclick="go('escanear')"><span class="circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></span>Escanear</button>
-  <button data-t="analisis" onclick="go('analisis')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 16v-4M12 16V8M17 16v-7"/></svg>Análisis</button>
   <button data-t="ajustes" onclick="go('ajustes')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Ajustes</button>
 </div></nav>
 
 <div class="modal" id="modal" onclick="if(event.target===this)closeModal()"><div class="sheet" id="sheet"></div></div>
+<div id="avisos"></div>
 <div class="toast" id="toast"></div>
 <div class="viewer" id="viewer" onclick="this.classList.remove('on')"><img alt="Foto del albarán"></div>
 
@@ -416,7 +452,8 @@ const CATEGORIAS = ['Pescado y marisco','Carne','Frutas y verduras','Lácteos y 
 
 const COL_ALB = ['id','creado','local','tipo','proveedor','cif','numero','fecha','base','iva','total','fotos','notas','estado','motivos'];
 const COL_LIN = ['id_albaran','n','fecha','local','proveedor','producto','producto_norm','categoria','cantidad','unidad','precio_unitario','descuento','importe'];
-const NUMS = ['base','iva','total','n','cantidad','precio_unitario','descuento','importe'];
+const NUMS = ['base','iva','total','n','cantidad','precio_unitario','descuento','importe','semanas'];
+const COL_PREM = ['id','tipo','local','desde','hasta','mes','concepto','importe','nota','grupo','semanas'];
 
 /* ===================== INSTALACIÓN ===================== */
 /** Ejecuta esta función UNA VEZ desde el editor (botón ▶ Ejecutar). Crea la hoja y la carpeta en tu Drive. */
@@ -431,6 +468,7 @@ function setup(){
   if (!ss){ ss = SpreadsheetApp.create(NOMBRE_HOJA); p.setProperty('SHEET_ID', ss.getId()) }
   hoja_(ss, 'Albaranes', COL_ALB);
   hoja_(ss, 'Lineas', COL_LIN);
+  hoja_(ss, 'Premisas', COL_PREM);
   const cfg = hoja_(ss, 'Config', ['locales','categorias']);
   if (cfg.getLastRow() < 2){
     const n = Math.max(LOCALES_INICIALES.length, CATEGORIAS.length);
@@ -478,10 +516,13 @@ function doPost(e){
     const b = JSON.parse(e.postData.contents);
     comprobarClave_(b.key);
     if (b.action === 'scan') return escanear_(b);
+    if (b.action === 'chat') return chat_(b);
     const lock = LockService.getScriptLock(); lock.waitLock(30000);
     try{
       if (b.action === 'save')   return guardar_(b.albaran, b.lineas || []);
       if (b.action === 'delete') return borrar_(b.id);
+      if (b.action === 'savePrem') return guardarPrem_(b.premisa);
+      if (b.action === 'delPrem')  return borrarPrem_(b.id);
     } finally { lock.releaseLock() }
     throw new Error('Acción desconocida: ' + b.action);
   });
@@ -515,6 +556,7 @@ function datos_(){
   return {
     albaranes: leer_(ss.getSheetByName('Albaranes')),
     lineas: leer_(ss.getSheetByName('Lineas')),
+    premisas: leer_(shPrem_(ss)),
     locales: cfg.map(r => String(r[0]).trim()).filter(String),
     categorias: cfg.map(r => String(r[1]).trim()).filter(String),
     sheetUrl: ss.getUrl(),
@@ -563,6 +605,44 @@ function borrar_(id){
   marcarCambio_();
   return {};
 }
+function iaTexto_(sistema, msgs, json){
+  if (!CLAVE_IA || CLAVE_IA.indexOf('__') === 0) throw new Error('Falta la clave de la IA en el script');
+  while (msgs.length && msgs[0].r === 'model') msgs.shift();
+  if (PROVEEDOR_IA === 'claude'){
+    const r = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', { method:'post', contentType:'application/json', muteHttpExceptions:true, headers:{ 'x-api-key':CLAVE_IA, 'anthropic-version':'2023-06-01' },
+      payload:JSON.stringify({ model:MODELO_CLAUDE, max_tokens:6000, system:sistema, messages:msgs.map(m => ({ role:m.r === 'model' ? 'assistant' : 'user', content:m.t })) }) });
+    const j = JSON.parse(r.getContentText() || '{}'); if (r.getResponseCode() !== 200) throw new Error('Claude: ' + ((j.error && j.error.message) || r.getResponseCode()));
+    return j.content.map(c => c.text || '').join('');
+  }
+  let ultimo = '';
+  for (const m of MODELOS_GEMINI){
+    const gc = { temperature: json ? 0.2 : 0.4 }; if (json) gc.responseMimeType = 'application/json';
+    const r = UrlFetchApp.fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent`, { method:'post', contentType:'application/json', headers:{ 'x-goog-api-key':CLAVE_IA }, muteHttpExceptions:true,
+      payload:JSON.stringify({ systemInstruction:{ parts:[{ text:sistema }] }, contents:msgs.map(x => ({ role:x.r === 'model' ? 'model' : 'user', parts:[{ text:x.t }] })), generationConfig:gc }) });
+    const c = r.getResponseCode(), j = JSON.parse(r.getContentText() || '{}');
+    if (c === 200) return ((j.candidates || [])[0] || {}).content.parts.map(p => p.text || '').join('');
+    ultimo = (j.error && j.error.message) || ('HTTP ' + c); if (c !== 404) break;
+  }
+  throw new Error('Gemini: ' + ultimo);
+}
+function chat_(b){
+  const msgs = (b.mensajes || []).slice(-10).map(m => ({ r:m.r === 'model' ? 'model' : 'user', t:String(m.t).slice(0, 2000) }));
+  const sistema = 'Eres Titán, el asistente de la app "Control de Albaranes" del grupo Alibio. Respondes en español, breve y claro (máximo 6 líneas), paso a paso cuando haga falta. Solo explicas cómo se maneja la app según esta guía; si no lo sabes, dilo sin inventar. Para llevar al usuario a una pantalla puedes terminar con [[ir:escanear]], [[ir:pyg]], [[ir:analisis]], [[ir:albaranes]], [[ir:productos]] o [[ir:ajustes]].\n\nGUÍA DE LA APP:\n' + String(b.ayuda || '').slice(0, 14000);
+  return { respuesta: iaTexto_(sistema, msgs, false) };
+}
+function shPrem_(ss){ const sh = ss.getSheetByName('Premisas'); return sh && sh.getLastColumn() >= COL_PREM.length ? sh : hoja_(ss, 'Premisas', COL_PREM) }
+function guardarPrem_(p){
+  const sh = shPrem_(ss_()), cols = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0];
+  const ids = sh.getLastRow() > 1 ? sh.getRange(2, 1, sh.getLastRow() - 1, 1).getValues().map(r => String(r[0])) : [];
+  const nuevo = !p.id || ids.indexOf(String(p.id)) < 0, id = nuevo ? 'P' + Date.now() + Math.random().toString(36).slice(2, 4) : String(p.id);
+  const fila = fila_(cols, Object.assign({}, p, { id }));
+  if (nuevo) sh.appendRow(fila); else sh.getRange(ids.indexOf(id) + 2, 1, 1, cols.length).setValues([fila]);
+  marcarCambio_(); return { id };
+}
+function borrarPrem_(id){
+  const sh = shPrem_(ss_()), ids = sh.getLastRow() > 1 ? sh.getRange(2, 1, sh.getLastRow() - 1, 1).getValues().map(r => String(r[0])) : [];
+  const i = ids.indexOf(String(id)); if (i >= 0) sh.deleteRow(i + 2); marcarCambio_(); return {};
+}
 function norm_(s){ return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim() }
 
 /* ===================== ESCANEAR (fotos a Drive + IA) ===================== */
@@ -591,16 +671,18 @@ function prompt_(){
   }catch(e){}
   return `Eres un experto leyendo albaranes, tickets y facturas de proveedores de hostelería en España.
 Lee el documento de las imágenes (pueden ser varias páginas del MISMO documento) y devuelve SOLO un JSON válido con esta forma:
-{"tipo":"Albarán|Ticket|Factura","proveedor":"","cif":"","numero":"","fecha":"YYYY-MM-DD","base":0,"iva":0,"total":0,
- "lineas":[{"producto":"","cantidad":0,"unidad":"kg|ud|l|caja…","precio_unitario":0,"descuento":0,"importe":0,"categoria":"","dudoso":false}],
+{"tipo":"Albarán|Ticket|Factura","proveedor":"","cif":"","numero":"","fecha":"YYYY-MM-DD","base":0,"iva":0,"total":0,"albaranes_ref":[],
+ "lineas":[{"producto":"","cantidad":0,"unidad":"kg|ud|l|caja…","precio_unitario":0,"descuento":0,"importe":0,"categoria":"","familia_dudosa":false,"dudoso":false}],
  "dudas":["texto breve de lo que no se lee bien"]}
 Reglas:
 - Números con punto decimal, sin símbolo €. Si un dato no aparece, pon null (no lo inventes).
 - importe = importe de la línea SIN IVA, ya con el descuento aplicado. base = suma sin IVA; iva = cuota total de IVA; total = importe final a pagar.
 - precio_unitario = precio por la unidad indicada (si pone 12,50 €/kg, unidad "kg").
-- categoria: una de ${JSON.stringify(CATEGORIAS)}.
+- categoria: una de ${JSON.stringify(CATEGORIAS)}. Si no estás seguro de la familia de un producto, pon "familia_dudosa":true (no lo anotes en "dudas").
 - "dudoso": true en la línea si algo está escrito a mano, tachado, borroso o no estás seguro. Explica en "dudas".
 - El proveedor es quien EMITE el documento, no el cliente que lo recibe.
+- tipo: "Factura" si pone FACTURA o tiene nº de factura, vencimiento o forma de pago; "Albarán" si es nota/albarán de entrega (suele poner ALBARÁN, sin vencimiento); "Ticket" si es un ticket de caja.
+- En una factura, "albaranes_ref" = los nº de albarán que cita (columna albarán/referencia/pedido); si no cita ninguno, [].
 - Escribe los productos como los escribe el proveedor; si coincide con uno conocido de la lista de abajo, usa exactamente ese nombre.
 Productos ya conocidos por proveedor:
 ${memoria || '(todavía ninguno)'}`;
@@ -677,10 +759,11 @@ const norm = s => String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/
 const pkey = l => (l.producto_norm || norm(l.producto)) + '|' + norm(l.unidad || 'ud');
 function toast(msg, ms=2600){ const t=$('#toast'); t.textContent=msg; t.style.display='block'; clearTimeout(t._h); t._h=setTimeout(()=>t.style.display='none', ms) }
 function opts(sel, arr, first){ sel.innerHTML = (first?`<option value="">${esc(first)}</option>`:'') + arr.map(x=>`<option>${esc(x)}</option>`).join('') }
-function keepOpts(sel, arr, first){ const v = sel.value; opts(sel, arr, first); if ([...sel.options].some(o=>o.value===v)) sel.value = v }
+function keepOpts(sel, arr, first){ const v = [...sel.selectedOptions].map(o => o.value); opts(sel, arr, first);
+  [...sel.options].forEach(o => { o.selected = v.includes(o.value) && (!sel.multiple || !!o.value) }); msRender(sel) }
 
 /* ===================== DATOS ===================== */
-let DB = { albaranes:[], lineas:[], locales:DEFAULT_LOCALES, categorias:DEFAULT_CATS, sheetUrl:'', folderUrl:'', version:'' };
+let DB = { albaranes:[], lineas:[], premisas:[], locales:DEFAULT_LOCALES, categorias:DEFAULT_CATS, sheetUrl:'', folderUrl:'', version:'' };
 let PROD = new Map();   // clave producto -> agregados
 
 async function apiGet(action){
@@ -706,13 +789,15 @@ async function loadData(silent){
         clearInterval(pollTimer);
         throw new Error(`esta conexión guarda en la cuenta ${cta}, no en ${CFG.cuenta}. Publica el Apps Script con ${CFG.cuenta} y pon su URL en config.js. No se guardará nada hasta corregirlo.`);
       }
-      DB = { ...j, locales: j.locales?.length ? j.locales : DEFAULT_LOCALES, categorias: j.categorias || DEFAULT_CATS };
+      DB = { ...j, locales: j.locales?.length ? j.locales : DEFAULT_LOCALES, categorias: j.categorias || DEFAULT_CATS, premisas: j.premisas || [] };
       setLive('ok', 'En vivo · ' + new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}));
     }
     DB.albaranes.forEach(a => { a.total = pnum(a.total)||0; a.base = pnum(a.base); a.iva = pnum(a.iva) });
     DB.lineas.forEach(l => { ['cantidad','precio_unitario','descuento','importe'].forEach(k => l[k] = pnum(l[k])); if (!l.producto_norm) l.producto_norm = norm(l.producto) });
     $('#errBanner').style.display='none';
-    buildProducts(); fillSelects(); renderAll();
+    DB.premisas.forEach(p => p.importe = pnum(p.importe) || 0);
+    conciliar();
+    buildProducts(); fillSelects(); renderAll(); refrescarPuntos();
     if (CFG.ready) procesarCola();
   }catch(e){
     setLive('err','Sin conexión'); if (!silent){ const b=$('#errBanner'); b.innerHTML='<b>No se pudo conectar:</b> '+esc(e.message)+' — revisa ⚙ Ajustes.'; b.style.display='block' }
@@ -738,7 +823,7 @@ window.addEventListener('online', () => { if (CFG.url) loadData(true) });
 /* ===================== PRODUCTOS (agregación) ===================== */
 function buildProducts(){
   PROD = new Map();
-  const lines = DB.lineas.filter(l => l.producto && l.precio_unitario > 0).slice().sort((a,b) => (a.fecha||'').localeCompare(b.fecha||''));
+  const lines = DB.lineas.filter(l => l.producto && l.precio_unitario > 0 && !l._dup).slice().sort((a,b) => (a.fecha||'').localeCompare(b.fecha||''));
   for (const l of lines){
     const k = pkey(l);
     if (!PROD.has(k)) PROD.set(k, { key:k, nombre:l.producto, categoria:l.categoria||'Otros', unidad:l.unidad||'ud', compras:[] });
@@ -775,13 +860,13 @@ function go(t){
   document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b.dataset.t === t));
   localStorage.tab = t; window.scrollTo(0,0); renderTab(t);
 }
-function renderTab(t){ ({escanear:renderRecent, albaranes:renderAlbaranes, productos:renderProductos, analisis:renderAnalisis, ajustes:renderAjustes}[t]||(()=>{}))() }
+function renderTab(t){ ({escanear:renderRecent, albaranes:renderAlbaranes, productos:renderProductos, analisis:renderAnalisis, pyg:renderPyG, ajustes:renderAjustes}[t]||(()=>{}))() }
 function renderAll(){ renderRecent(); renderTab(localStorage.tab || 'escanear'); $('#setupBanner').style.display = CFG.ready ? 'none' : 'block' }
 
 function fillSelects(){
   const loc = $('#scanLocal'); keepOpts(loc, DB.locales);
   if (localStorage.scanLocal && DB.locales.includes(localStorage.scanLocal)) loc.value = localStorage.scanLocal;
-  ['#aLocal','#pLocal','#fLocal'].forEach(s => keepOpts($(s), DB.locales, 'Todos los locales'));
+  ['#aLocal','#pLocal','#fLocal','#gLocal'].forEach(s => keepOpts($(s), DB.locales, 'Todos los locales'));
   const cats = [...new Set([...DB.categorias, ...DB.lineas.map(l=>l.categoria).filter(Boolean)])];
   ['#pCat','#fCat'].forEach(s => keepOpts($(s), cats, 'Todas las categorías'));
   const provs = [...new Set(DB.albaranes.map(a=>a.proveedor).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es'));
@@ -857,7 +942,7 @@ function estadoDe(a){
   return String(a.notas || '').startsWith(REV_TAG) ? 'Por revisar' : 'Validado';
 }
 const motivosDe = a => a.motivos || (String(a.notas||'').startsWith(REV_TAG) ? String(a.notas).slice(REV_TAG.length).replace(/^[:\s]+/,'').split(' | ')[0] : '');
-const notasSinMarca = n => String(n||'').startsWith(REV_TAG) ? String(n).split(' | ').slice(1).join(' | ') : String(n||'');
+const notasSinMarca = n => sinTags(String(n||'').startsWith(REV_TAG) ? String(n).split(' | ').slice(1).join(' | ') : String(n||''));
 
 let autoTimer = null;
 function cancelAuto(){ clearInterval(autoTimer); autoTimer = null; $('#autoBar').style.display = 'none'; $('#processBtn').textContent = '⚡ Leer albarán con IA' }
@@ -876,6 +961,7 @@ function validarAuto(d, aiError){
   if (aiError) m.push('la IA no pudo leerlo (' + String(aiError).replace(/\|/g,'/') + ')');
   if (!String(d.proveedor||'').trim()) m.push('no se lee el proveedor');
   const f = String(d.fecha || '').slice(0,10);
+  if (d.tipo === 'Factura' && !String(d.numero||'').trim()) m.push('factura sin número');
   if (!/^\d{4}-\d{2}-\d{2}$/.test(f)) m.push('no se lee la fecha');
   else { const dias = (Date.now() - new Date(f + 'T12:00')) / 864e5; if (dias < -1) m.push('la fecha es futura'); else if (dias > 120) m.push('la fecha es de hace más de 4 meses') }
   const total = pnum(d.total), base = pnum(d.base), iva = pnum(d.iva);
@@ -899,10 +985,13 @@ function validarAuto(d, aiError){
 
 /** Construye el albarán y sus líneas a partir de la lectura de la IA. */
 function montarDocumento(d, fotos, local, creado, motivos){
-  const lineas = (d.lineas || []).filter(l => String(l.producto||'').trim()).map(l => {
+  const fam = [];
+  const lineas = (d.lineas || []).filter(l => String(l.producto||'').trim()).map((l, i) => {
     const cantidad = pnum(l.cantidad), precio = pnum(l.precio_unitario);
+    const conocido = PROD.get(norm(l.producto) + '|' + norm(l.unidad || 'ud')), cat = conocido ? conocido.categoria : (l.categoria || 'Otros');
+    if (!conocido && (l.familia_dudosa || !l.categoria || cat === 'Otros' || !DB.categorias.includes(cat))) fam.push(i + 1);
     let importe = pnum(l.importe); if (importe == null && cantidad != null && precio != null) importe = Math.round(cantidad * precio * 100) / 100;
-    return { producto:String(l.producto).trim(), categoria:l.categoria || 'Otros', cantidad, unidad:String(l.unidad || 'ud').trim(), precio_unitario:precio, descuento:pnum(l.descuento) || 0, importe };
+    return { producto:String(l.producto).trim(), categoria:cat, cantidad, unidad:String(l.unidad || 'ud').trim(), precio_unitario:precio, descuento:pnum(l.descuento) || 0, importe };
   });
   const iva = pnum(d.iva), base = pnum(d.base);
   let total = pnum(d.total); if (total == null) total = Math.round((lineas.reduce((s,l)=>s+(l.importe||0),0) + (iva||0)) * 100) / 100;
@@ -913,8 +1002,9 @@ function montarDocumento(d, fotos, local, creado, motivos){
     fecha, local, proveedor: String(d.proveedor||'').trim() || '(proveedor sin leer)', numero: d.numero || '', cif: d.cif || '',
     base, iva, total, fotos,
     estado: rev ? 'Por revisar' : 'Validado', motivos: mot,
-    notas: rev ? `${REV_TAG}: ${mot}` + (d.notas ? ' | ' + d.notas : '') : (d.notas || '')
+    notas: (rev ? `${REV_TAG}: ${mot}` + (d.notas ? ' | ' + d.notas : '') : (d.notas || '')) + ((d.albaranes_ref||[]).filter(Boolean).length ? ` [[REFS:${d.albaranes_ref.filter(Boolean).join(', ').replace(/\]/g,'')}]]` : '')
   };
+  if (fam.length) albaran.notas = (albaran.notas || '') + ` [[FAMILIA:${fam.join(',')}]]`;
   return { albaran, lineas };
 }
 
@@ -970,6 +1060,7 @@ async function processScan(){
   if (res.estado === 'manual') return;
   if (res.estado !== 'cola') await loadData(true);
   mostrarResultado(res); renderCola();
+  const g = res.doc && buscarGuardado(res); if (g && famDe(g).length) abrirFamilias(g.id);
 }
 
 function buscarGuardado(res){
@@ -988,13 +1079,14 @@ function mostrarResultado(res){
   const ver = a ? `<button class="btn sm${res.estado==='Por revisar'?'':' ghost'}" onclick="${res.estado==='Por revisar' ? `editAlbaran('${esc(a.id)}')` : `openAlbaran('${esc(a.id)}')`}">${res.estado==='Por revisar' ? 'Revisar ahora' : 'Ver'}</button>` : '';
   if (res.estado === 'Validado'){
     box.innerHTML = `<div class="result ok"><div class="row"><div class="grow"><b>✅ Guardado automáticamente</b>
-      <div class="small">${esc(doc.proveedor)} · ${fdate(doc.fecha)} · ${res.doc.lineas.length} productos · <b>${eur(doc.total)}</b></div></div>${ver}</div></div>`;
+      <div class="small">${esc(doc.proveedor)} · ${fdate(doc.fecha)} · ${res.doc.lineas.length} productos · <b>${eur(doc.total)}</b></div>${concLinea(a)}</div>${ver}</div></div>`;
     toast('✅ Albarán guardado');
   } else {
     box.innerHTML = `<div class="result rev"><div class="row"><div class="grow"><b>⚠ Guardado como POR REVISAR</b>
       <div class="small">${esc(doc.proveedor)} · ${eur(doc.total)}</div><div class="small muted">Motivo: ${esc(doc.motivos)}</div></div>${ver}</div></div>`;
     toast('⚠ Guardado como POR REVISAR', 3500);
   }
+  if (a) box.querySelector('.result').insertAdjacentHTML('beforeend', `<div style="margin-top:8px"><button class="btn sm ghost" onclick="togglePyG('${esc(a.id)}',this)">${sinPyG(a) ? '↩ Volver a aplicar en PyG' : '🚫 No aplicar en PyG'}</button></div>`);
 }
 
 /* ===================== COLA EN EL MÓVIL (IndexedDB) ===================== */
@@ -1070,10 +1162,11 @@ function renderReview(){
     <div class="card">
       <div class="grid3">
         <div style="grid-column:span 2"><label class="f">Proveedor</label><input value="${esc(a.proveedor)}" oninput="R.a.proveedor=this.value" onchange="renderReview()" list="provList"></div>
-        <div><label class="f">Tipo</label><select onchange="R.a.tipo=this.value">${['Albarán','Ticket','Factura'].map(t=>`<option ${t===a.tipo?'selected':''}>${t}</option>`).join('')}</select></div>
+        <div><label class="f">Tipo</label><select onchange="R.a.tipo=this.value;renderReview()">${['Albarán','Ticket','Factura'].map(t=>`<option ${t===a.tipo?'selected':''}>${t}</option>`).join('')}</select></div>
         <div><label class="f">Nº documento</label><input value="${esc(a.numero)}" oninput="R.a.numero=this.value" onchange="renderReview()"></div>
         <div><label class="f">Fecha</label><input type="date" value="${esc((a.fecha||'').slice(0,10))}" onchange="R.a.fecha=this.value"></div>
         <div><label class="f">CIF proveedor</label><input value="${esc(a.cif)}" oninput="R.a.cif=this.value"></div>
+        ${a.tipo==='Factura' ? `<div style="grid-column:1/-1"><label class="f">Albaranes que cita esta factura (nº, separados por coma)</label><input value="${esc(a.refs ?? refsDe(a).join(', '))}" oninput="R.a.refs=this.value"></div>` : ''}
         <div style="grid-column:1/-1"><label class="f">Local</label><select onchange="R.a.local=this.value">${DB.locales.map(l=>`<option ${l===a.local?'selected':''}>${esc(l)}</option>`).join('')}</select></div>
         <div><label class="f">Base imponible</label><input inputmode="decimal" value="${a.base??''}" oninput="R.a.base=pnum(this.value)" onchange="renderReview()"></div>
         <div><label class="f">IVA</label><input inputmode="decimal" value="${a.iva??''}" oninput="R.a.iva=pnum(this.value)" onchange="renderReview()"></div>
@@ -1121,10 +1214,12 @@ function setL(i,k,v){
   renderReview();
 }
 async function saveReview(dejarPorRevisar){
-  const a = R.a;
+  const a = R.a, nopyg = sinPyG(a);
   const notas = notasSinMarca(a.notas);
   if (dejarPorRevisar){ const mot = motivosDe(a) || 'pendiente de revisar'; Object.assign(a, { estado:'Por revisar', motivos:mot, notas:`${REV_TAG}: ${mot}` + (notas ? ' | ' + notas : '') }) }
   else Object.assign(a, { estado:'Validado', motivos:'', notas });
+  const refs = (a.refs !== undefined ? a.refs : refsDe(a).join(', ')).trim(); if (a.tipo === 'Factura' && refs) a.notas = (a.notas||'') + ' [[REFS:' + refs.replace(/\]/g,'') + ']]';
+  if (nopyg) a.notas = (a.notas||'') + ' [[NOPYG]]';
   if (!a.proveedor){ toast('Falta el proveedor'); return }
   if (!a.fecha){ toast('Falta la fecha'); return }
   if (a.total == null){ const s = R.lineas.reduce((s,l)=>s+(pnum(l.importe)||0),0); a.total = s + (pnum(a.iva)||0) }
@@ -1147,7 +1242,7 @@ function albItem(a){
   return `<div class="item" onclick="openAlbaran('${esc(a.id)}')">
     <div class="grow"><div class="t">${esc(a.proveedor || 'Sin proveedor')}</div>
     <div class="small muted">${fdate(a.fecha)} · ${esc(a.local)}${a.numero?' · nº '+esc(a.numero):''}</div>
-    <div style="margin-top:3px">${estadoDe(a)==='Por revisar'?'<span class="pill rev">⚠ Por revisar</span>':''}<span class="pill">${esc(a.tipo||'Albarán')}</span><span class="pill">${n} líneas</span>${a.fotos?'<span class="pill">📎 foto</span>':''}</div></div>
+    <div style="margin-top:3px">${estadoDe(a)==='Por revisar'?'<span class="pill rev">⚠ Por revisar</span>':''}<span class="pill">${esc(a.tipo||'Albarán')}</span>${concPill(a)}${sinPyG(a) ? '<span class="pill rev">🚫 fuera de PyG</span>' : ''}<span class="pill">${n} líneas</span>${a.fotos?'<span class="pill">📎 foto</span>':''}</div></div>
     <div class="amt">${eur(a.total)}</div></div>`;
 }
 function renderRecent(){
@@ -1159,8 +1254,8 @@ function renderRecent(){
   renderCola();
 }
 function filtAlbaranes(){
-  const q = norm($('#aSearch').value), loc = $('#aLocal').value, d1 = $('#aDesde').value, d2 = $('#aHasta').value, t = $('#aTipo').value, est = $('#aEstado').value;
-  return DB.albaranes.filter(a => (!loc || a.local === loc) && (!t || a.tipo === t) && (!est || estadoDe(a) === est) && (!d1 || a.fecha >= d1) && (!d2 || a.fecha <= d2) &&
+  const q = norm($('#aSearch').value), loc = sv('aLocal'), d1 = $('#aDesde').value, d2 = $('#aHasta').value, t = sv('aTipo'), est = sv('aEstado');
+  return DB.albaranes.filter(a => (!loc.length || loc.includes(a.local)) && (!t.length || t.includes(a.tipo)) && (!est.length || est.includes(estadoDe(a))) && (!d1 || a.fecha >= d1) && (!d2 || a.fecha <= d2) &&
     (!q || norm(a.proveedor + ' ' + a.numero + ' ' + a.cif).includes(q) || DB.lineas.some(l => l.id_albaran === a.id && norm(l.producto).includes(q))))
     .sort((a,b) => (b.fecha||'').localeCompare(a.fecha||'') || String(b.creado).localeCompare(String(a.creado)));
 }
@@ -1182,12 +1277,14 @@ function openAlbaran(id){
       <div><span class="muted">Base</span><br><b>${a.base!=null?eur(a.base):'—'}</b></div><div><span class="muted">IVA</span><br><b>${a.iva!=null?eur(a.iva):'—'}</b></div><div><span class="muted">Total</span><br><b style="font-size:17px">${eur(a.total)}</b></div>
     </div>${notasSinMarca(a.notas)?`<p class="small" style="margin-bottom:0">📝 ${esc(notasSinMarca(a.notas))}</p>`:''}</div>
     ${estadoDe(a)==='Por revisar' ? `<div class="banner"><b>⚠ Por revisar:</b> ${esc(motivosDe(a))}</div>` : ''}
+    ${concBloque(a)}
     ${fotos.length ? `<div class="row" style="margin-bottom:10px">${fotos.map((u,i)=>`<a class="btn sm ghost" href="${esc(u)}" target="_blank" style="text-decoration:none">📎 Foto ${i+1} en Drive ↗</a>`).join('')}</div>` : ''}
     <div class="tbl-wrap"><table><tr><th>Producto</th><th>Categoría</th><th class="n">Cant.</th><th>Ud</th><th class="n">Precio/ud</th><th class="n">Var.</th><th class="n">Importe</th></tr>
     ${ls.map(l => { const v = varVsPrev(l); return `<tr class="click" onclick="openProducto('${esc(pkey(l))}')"><td>${esc(l.producto)}</td><td>${esc(l.categoria)}</td><td class="n">${num(l.cantidad,3)}</td><td>${esc(l.unidad)}</td><td class="n">${eur4(l.precio_unitario)}</td><td class="n">${v==null?'—':`<span class="${v>0.001?'up':v<-0.001?'down':''}">${pct(v)}</span>`}</td><td class="n">${eur(l.importe)}</td></tr>` }).join('') || '<tr><td colspan="7" class="muted">Sin líneas de producto</td></tr>'}
     </table></div>
     <div class="row" style="margin-top:14px">
       <button class="btn" onclick="editAlbaran('${esc(a.id)}')">${estadoDe(a)==='Por revisar' ? '✏️ Revisar' : '✏️ Editar'}</button>
+      <button class="btn sec" onclick="togglePyG('${esc(a.id)}')">${sinPyG(a) ? '↩ Volver a aplicar en PyG' : '🚫 No aplicar en PyG'}</button>
       <button class="btn danger" onclick="deleteAlbaran('${esc(a.id)}')">🗑 Eliminar</button>
     </div>
   </div>`;
@@ -1215,11 +1312,11 @@ function varVsPrev(l){
 
 /* ===================== PRODUCTOS ===================== */
 function renderProductos(){
-  const q = norm($('#pSearch').value), cat = $('#pCat').value, loc = $('#pLocal').value, ord = $('#pOrden').value, soloVar = $('#pSoloVar').checked;
+  const q = norm($('#pSearch').value), cat = sv('pCat'), loc = sv('pLocal'), ord = $('#pOrden').value, soloVar = $('#pSoloVar').checked;
   let list = [...PROD.values()].map(p => {
-    if (!loc) return p;
-    const c = p.compras.filter(x => x.local === loc); return c.length ? statsProduct({ ...p }, c) : null;
-  }).filter(p => p && (!cat || p.categoria === cat) && (!q || norm(p.nombre + ' ' + p.proveedores.join(' ')).includes(q)) && (!soloVar || (p.var && Math.abs(p.var) >= 0.001)));
+    if (!loc.length) return p;
+    const c = p.compras.filter(x => loc.includes(x.local)); return c.length ? statsProduct({ ...p }, c) : null;
+  }).filter(p => p && (!cat.length || cat.includes(p.categoria)) && (!q || norm(p.nombre + ' ' + p.proveedores.join(' ')).includes(q)) && (!soloVar || (p.var && Math.abs(p.var) >= 0.001)));
   const s = { var: (a,b) => (b.var??-9) - (a.var??-9), gasto: (a,b) => b.gasto - a.gasto, compras: (a,b) => b.n - a.n,
               nombre: (a,b) => a.nombre.localeCompare(b.nombre,'es'), recent: (a,b) => (b.last.fecha||'').localeCompare(a.last.fecha||'') };
   list.sort(s[ord]);
@@ -1278,18 +1375,18 @@ function clearPreset(){ localStorage.preset=''; document.querySelectorAll('#pres
 document.querySelectorAll('#presets button[data-p]').forEach(b => b.onclick = () => setPreset(b.dataset.p));
 
 function analisisData(){
-  const d1 = $('#fDesde').value, d2 = $('#fHasta').value, loc = $('#fLocal').value, prov = $('#fProv').value, cat = $('#fCat').value;
-  const okA = a => (!d1 || a.fecha >= d1) && (!d2 || a.fecha <= d2) && (!loc || a.local === loc) && (!prov || a.proveedor === prov);
+  const d1 = $('#fDesde').value, d2 = $('#fHasta').value, loc = sv('fLocal'), prov = sv('fProv'), cat = sv('fCat');
+  const okA = a => (!d1 || a.fecha >= d1) && (!d2 || a.fecha <= d2) && (!loc.length || loc.includes(a.local)) && (!prov.length || prov.includes(a.proveedor)) && !a._dup;
   let alb = DB.albaranes.filter(okA);
-  const lin = DB.lineas.filter(l => okA(l) && (!cat || l.categoria === cat));
-  if (cat){ const ids = new Set(lin.map(l=>l.id_albaran)); alb = alb.filter(a => ids.has(a.id)) }
+  const lin = DB.lineas.filter(l => okA(l) && (!cat.length || cat.includes(l.categoria)));
+  if (cat.length){ const ids = new Set(lin.map(l=>l.id_albaran)); alb = alb.filter(a => ids.has(a.id)) }
   return { alb, lin, d1, d2, loc, prov, cat };
 }
 function renderAnalisis(){
   if (!$('#fUmbral').value) $('#fUmbral').value = CFG.umbral;
   const umbral = (pnum($('#fUmbral').value) ?? 5) / 100;
   const { alb, lin, cat } = analisisData();
-  const total = cat ? lin.reduce((s,l)=>s+(l.importe||0),0) : alb.reduce((s,a)=>s+a.total,0);
+  const total = cat.length ? lin.reduce((s,l)=>s+(l.importe||0),0) : alb.reduce((s,a)=>s+a.total,0);
   const provs = new Set(alb.map(a=>a.proveedor));
   const alerts = lin.map(l => ({ l, v: varVsPrev(l) })).filter(x => x.v != null && Math.abs(x.v) >= umbral)
     .map(x => { const prev = x.l.precio_unitario / (1 + x.v); return { ...x, prev, impacto: (x.l.precio_unitario - prev) * (x.l.cantidad||0) } })
@@ -1297,7 +1394,7 @@ function renderAnalisis(){
   const sobrecoste = alerts.reduce((s,x) => s + Math.max(0, x.impacto), 0);
 
   $('#kpis').innerHTML = `
-    <div class="kpi"><div class="l">Gasto ${cat?'(sin IVA, categoría)':'(con IVA)'}</div><div class="v">${eur(total)}</div><div class="d">${alb.length} documentos</div></div>
+    <div class="kpi"><div class="l">Gasto ${cat.length?'(sin IVA, categoría)':'(con IVA)'}</div><div class="v">${eur(total)}</div><div class="d">${alb.length} documentos</div></div>
     <div class="kpi"><div class="l">Importe medio por documento</div><div class="v">${eur(alb.length ? alb.reduce((s,a)=>s+a.total,0)/alb.length : 0)}</div><div class="d">con IVA</div></div>
     <div class="kpi"><div class="l">Proveedores</div><div class="v">${provs.size}</div><div class="d">${new Set(lin.map(pkey)).size} productos distintos</div></div>
     <div class="kpi"><div class="l">Subidas de precio ≥ ${num(umbral*100,1)} %</div><div class="v ${alerts.filter(a=>a.v>0).length?'up':''}">${alerts.filter(a=>a.v>0).length}</div><div class="d">sobrecoste estimado ${eur(sobrecoste)}</div></div>`;
@@ -1394,7 +1491,7 @@ function exportCSV(which){
 function exportAlbaranesFiltrados(){ const l = filtAlbaranes(), ids = new Set(l.map(a=>a.id)); xlsx([['Albaranes', rowsAlb(l)], ['Líneas', rowsLin(DB.lineas.filter(x=>ids.has(x.id_albaran)))]], `albaranes_filtrados_${stamp()}.xlsx`) }
 function exportAnalisis(){
   const { alb, lin, d1, d2, loc, prov, cat } = analisisData();
-  const filtros = [{ Filtro:'Desde', Valor:d1||'—' },{ Filtro:'Hasta', Valor:d2||'—' },{ Filtro:'Local', Valor:loc||'Todos' },{ Filtro:'Proveedor', Valor:prov||'Todos' },{ Filtro:'Categoría', Valor:cat||'Todas' }];
+  const filtros = [{ Filtro:'Desde', Valor:d1||'—' },{ Filtro:'Hasta', Valor:d2||'—' },{ Filtro:'Local', Valor:loc.join(', ')||'Todos' },{ Filtro:'Proveedor', Valor:prov.join(', ')||'Todos' },{ Filtro:'Categoría', Valor:cat.join(', ')||'Todas' }];
   xlsx([['Filtros', filtros], ['Por proveedor', group(alb,a=>a.proveedor,a=>a.total).map(([k,v])=>({Proveedor:k, 'Gasto con IVA':Math.round(v*100)/100}))],
         ['Por local', group(alb,a=>a.local,a=>a.total).map(([k,v])=>({Local:k, 'Gasto con IVA':Math.round(v*100)/100}))],
         ['Por categoría', group(lin,l=>l.categoria||'Otros',l=>l.importe||0).map(([k,v])=>({Categoría:k, 'Gasto sin IVA':Math.round(v*100)/100}))],
@@ -1518,8 +1615,314 @@ async function probarConexion(){
   renderAsistente(); toast('✅ Conectado a Google Drive');
 }
 
+/* ===================== CONCILIACIÓN Y PUNTOS A RESOLVER ===================== */
+const nn = s => String(s||'').replace(/\D/g,'').replace(/^0+/,'') || norm(s);
+const refsDe = a => { const m = /\[\[REFS:([^\]]*)\]\]/.exec(a.notas||''); return m ? m[1].split(/[,;]\s*/).map(s=>s.trim()).filter(Boolean) : [] };
+const sinTags = n => String(n||'').replace(/\s*\[\[(REFS:[^\]]*|NOPYG|FAMILIA:[^\]]*)\]\]/g,'');
+const sinPyG = a => /\[\[NOPYG\]\]/.test(a.notas || '');
+const famDe = a => { const m = /\[\[FAMILIA:([^\]]*)\]\]/.exec(a.notas || ''); return m ? m[1].split(',').map(Number).filter(Boolean) : [] };
+const diaN = s => new Date(String(s||'').slice(0,10)+'T12:00').getTime()/864e5;
+let CONC = { links:new Map() };
+/** Empareja cada factura con sus albaranes (por los nº que cita o por importe) para no duplicar el gasto. */
+function conciliar(){
+  DB.albaranes.forEach(a => { a._dup = false; a._cub = null });
+  DB.lineas.forEach(l => l._dup = false);
+  CONC = { links:new Map() };
+  const val = DB.albaranes.filter(a => estadoDe(a) !== 'Por revisar'), usado = new Set();
+  const dels = val.filter(a => (a.tipo || 'Albarán') === 'Albarán');
+  const im = a => a.base ?? a.total, tol = x => Math.max(1, Math.abs(x) * .01), sum = xs => xs.reduce((s,x) => s + (im(x)||0), 0);
+  for (const f of val.filter(a => a.tipo === 'Factura').sort((x,y) => (x.fecha||'').localeCompare(y.fecha||''))){
+    const fb = im(f); if (!fb) continue;
+    const mias = dels.filter(d => !usado.has(d.id) && norm(d.proveedor) === norm(f.proveedor) && d.local === f.local && diaN(d.fecha) <= diaN(f.fecha) + 7 && diaN(d.fecha) >= diaN(f.fecha) - 75);
+    let L = [], falta = [];
+    for (const r of refsDe(f)){ const d = mias.find(x => nn(x.numero) === nn(r)); if (d && !L.includes(d)) L.push(d); else falta.push(r) }
+    if (!falta.length && Math.abs(sum(L) - fb) > tol(fb)){
+      const rest = mias.filter(x => !L.includes(x)).slice(-12), need = fb - sum(L); let mejor = null;
+      for (let m = 1; m < (1 << rest.length); m++){ const s = rest.filter((_,i) => m >> i & 1); if (Math.abs(sum(s) - need) <= tol(fb) && (!mejor || s.length < mejor.length)) mejor = s }
+      if (mejor) L = L.concat(mejor);
+    }
+    const diff = fb - sum(L);
+    L.forEach(d => { usado.add(d.id); d._dup = true; d._cub = f });
+    if (DB.lineas.some(l => l.id_albaran === f.id)) DB.lineas.forEach(l => { if (L.some(d => d.id === l.id_albaran)) l._dup = true });
+    CONC.links.set(f.id, { L, falta, diff, ok: !falta.length && Math.abs(diff) <= tol(fb) });
+  }
+}
+function concPill(a){
+  if (a._cub) return `<span class="pill ok">🔗 en factura ${esc(a._cub.numero||'')}</span>`;
+  const k = CONC.links.get(a.id); if (!k) return '';
+  return k.ok ? `<span class="pill ok">🔗 ${k.L.length} albarán(es)</span>` : `<span class="pill rev">🧾 faltan albaranes</span>`;
+}
+function concLinea(a){
+  if (!a) return '';
+  if (a._cub) return `<div class="small">🔗 Ya cubierto por la factura ${esc(a._cub.numero||'')}: no se duplica en el gasto.</div>`;
+  const k = CONC.links.get(a.id); if (!k) return '';
+  return k.ok ? `<div class="small">🔗 Conciliada con ${k.L.length} albarán(es): no se duplica en el gasto.</div>` : `<div class="small" style="color:#7a4b00">⚠ No cuadra con los albaranes: mira ⓘ.</div>`;
+}
+function concBloque(a){
+  const k = CONC.links.get(a.id);
+  if (a._cub) return `<div class="banner">🔗 Cubierto por la <a href="#" onclick="openAlbaran('${esc(a._cub.id)}');return false">factura ${esc(a._cub.numero||'')}</a> (${fdate(a._cub.fecha)}). No se cuenta dos veces.</div>`;
+  if (!k) return '';
+  return `<div class="banner ${k.ok?'':'err'}">${k.ok ? '🔗 Conciliada con:' : '⚠ No cuadra con los albaranes.'}${k.falta.length ? ' Falta el nº ' + esc(k.falta.join(', ')) + '.' : ''}
+    ${k.L.map(d => `<div><a href="#" onclick="openAlbaran('${esc(d.id)}');return false">${fdate(d.fecha)} · nº ${esc(d.numero||'—')} · ${eur(d.base ?? d.total)}</a></div>`).join('')}</div>`;
+}
+let PUNTOS = [];
+const LS = k => { try{ return JSON.parse(localStorage[k] || '[]') }catch(e){ return [] } };
+function calcularPuntos(){
+  const P = [], hoy = Date.now()/864e5, nom = a => a.proveedor + (a.numero ? ' nº ' + a.numero : '');
+  const add = (id, ic, t, d, arg) => P.push({ id, ic, t, d, arg });
+  DB.albaranes.forEach(a => { if (estadoDe(a) === 'Por revisar') add('rev:'+a.id, '⚠', 'Por revisar: ' + a.proveedor, motivosDe(a) || 'No pasó la validación automática', a.id) });
+  for (const [fid,k] of CONC.links){
+    if (k.ok) continue; const f = DB.albaranes.find(x => x.id === fid), fb = f.base ?? f.total;
+    const d = k.falta.length ? `Falta el albarán nº ${k.falta.join(', ')} (lo cita la factura).`
+      : !k.L.length ? `Ningún albarán de este proveedor cuadra con ${eur(fb)}. ¿Falta fotografiarlos?`
+      : k.diff > 0 ? `Los albaranes suman ${eur(fb - k.diff)} y la factura ${eur(fb)}: faltan ${eur(k.diff)}.`
+      : `Los albaranes suman ${eur(fb - k.diff)}, más que la factura (${eur(fb)}).`;
+    add('fac:'+fid+':'+Math.round(k.diff)+k.falta.join(), '🧾', 'Factura ' + nom(f) + ': revisar albaranes', d, fid);
+  }
+  DB.albaranes.forEach(a => { const n = famDe(a).length; if (n) add('fam:'+a.id+':'+famDe(a).join(), '🏷', 'Elegir familia: ' + nom(a), `${n} producto(s) sin familia clara: de ella depende si cuentan como comida, bebida u otros en la PyG.`, a.id) });
+  const conF = new Set(DB.albaranes.filter(a => a.tipo === 'Factura').map(a => norm(a.proveedor)));
+  DB.albaranes.forEach(a => { const dd = hoy - diaN(a.fecha);
+    if ((a.tipo||'Albarán') === 'Albarán' && estadoDe(a) !== 'Por revisar' && !a._cub && conF.has(norm(a.proveedor)) && dd > 35 && dd < 120)
+      add('sinf:'+a.id, '📄', 'Albarán sin factura: ' + nom(a), `Lleva ${Math.round(dd)} días sin factura (${eur(a.total)}).`, a.id) });
+  const v = DB.albaranes.filter(a => estadoDe(a) !== 'Por revisar');
+  v.forEach((a,i) => v.slice(i+1).forEach(b => { if (norm(a.proveedor) === norm(b.proveedor) && (a.tipo||'Albarán') === (b.tipo||'Albarán') && a.total && Math.abs(a.total - b.total) < .01 && Math.abs(diaN(a.fecha) - diaN(b.fecha)) <= 3 && !(a.numero && b.numero && String(a.numero) !== String(b.numero)))
+    add('dup:' + [a.id,b.id].sort().join('+'), '👯', 'Posible duplicado: ' + a.proveedor, `Dos documentos de ${eur(a.total)} (${fdate(a.fecha)} y ${fdate(b.fecha)}).`, b.id) }));
+  const ok = LS('puntosOk'); PUNTOS = P.filter(p => !ok.includes(p.id));
+}
+function refrescarPuntos(){
+  calcularPuntos();
+  const n = PUNTOS.length, b = $('#infoN'); b.textContent = n; b.style.display = n ? 'inline-block' : 'none';
+  const cer = LS('avisosCerrados'), vis = PUNTOS.map((p,i) => ({p,i})).filter(x => !cer.includes(x.p.id));
+  $('#avisos').innerHTML = vis.slice(0,4).map(({p,i}) => `<div class="aviso"><div class="row"><b class="grow">${p.ic} ${esc(p.t)}</b><button class="x" onclick="cerrarAviso(${i})">×</button></div>
+    <div class="small" style="margin:4px 0 8px">${esc(p.d)}</div><button class="btn sm" onclick="resolverPunto(${i})">Resolver</button></div>`).join('')
+    + (vis.length > 4 ? `<div class="aviso small" style="border-left-color:var(--muted)"><b>+${vis.length-4} avisos más</b> · <a href="#" onclick="abrirPuntos();return false">verlos todos</a></div>` : '');
+}
+function guardarLS(k, id){ const l = LS(k); if (!l.includes(id)) l.push(id); localStorage[k] = JSON.stringify(l.slice(-500)) }
+function cerrarAviso(i){ guardarLS('avisosCerrados', PUNTOS[i].id); refrescarPuntos() }
+function descartarPunto(i){ guardarLS('puntosOk', PUNTOS[i].id); refrescarPuntos(); abrirPuntos() }
+async function guardarAlb(id, fnNotas, fnLineas){
+  const a = DB.albaranes.find(x => x.id === id), { _dup, _cub, ...c } = a;
+  const lineas = DB.lineas.filter(l => l.id_albaran === id).sort((x,y) => x.n - y.n).map(l => ({ producto:l.producto, categoria:l.categoria, cantidad:l.cantidad, unidad:l.unidad, precio_unitario:l.precio_unitario, descuento:l.descuento, importe:l.importe }));
+  if (fnLineas) fnLineas(lineas);
+  await apiPost({ action:'save', albaran:{ ...c, notas:fnNotas(String(a.notas || '')) }, lineas }); await loadData(true);
+}
+async function togglePyG(id, btn){
+  const a = DB.albaranes.find(x => x.id === id); if (!a) return; const quitar = !sinPyG(a);
+  try{ await guardarAlb(id, n => n.replace(/\s*\[\[NOPYG\]\]/g,'') + (quitar ? ' [[NOPYG]]' : ''));
+    toast(quitar ? '🚫 Ya no cuenta en la PyG' : '✅ Vuelve a contar en la PyG');
+    if (btn) btn.textContent = quitar ? '↩ Volver a aplicar en PyG' : '🚫 No aplicar en PyG'; else openAlbaran(id) }catch(e){ toast('Error: ' + e.message, 5000) }
+}
+function abrirFamilias(id){
+  const a = DB.albaranes.find(x => x.id === id); if (!a) return;
+  const idx = famDe(a), ls = DB.lineas.filter(l => l.id_albaran === id).sort((x,y) => x.n - y.n);
+  const cats = [...new Set([...DB.categorias, ...DB.lineas.map(l => l.categoria).filter(Boolean)])], G = { comida:'🍽 comida', bebida:'🍷 bebida', otros:'📦 otros' };
+  $('#sheet').innerHTML = `<div class="sheet-h"><h3>🏷 ¿En qué familia va cada producto?</h3><button class="x" onclick="closeModal()">×</button></div><div class="sheet-b">
+    <p class="small muted" style="margin-top:0">${esc(a.proveedor)} · ${fdate(a.fecha)}. De la familia depende si cuenta como comida, bebida u otros en la PyG. La app recordará tu elección.</p>
+    ${idx.map(n => { const l = ls[n-1]; return l ? `<div class="line"><b>${esc(l.producto)}</b> <span class="small muted">${num(l.cantidad,2)} ${esc(l.unidad)} · ${eur(l.importe)}</span>
+      <select id="fam${n}" style="margin-top:6px">${cats.map(c => `<option value="${esc(c)}" ${c === l.categoria ? 'selected' : ''}>${esc(c)} — ${G[grupoCat(c)]}</option>`).join('')}</select></div>` : '' }).join('')}
+    <button class="btn" style="width:100%;margin-top:8px" onclick="guardarFamilias('${esc(id)}')">✓ Guardar familias</button></div>`;
+  $('#modal').classList.add('on');
+}
+async function guardarFamilias(id){
+  const idx = famDe(DB.albaranes.find(x => x.id === id));
+  try{ await guardarAlb(id, n => n.replace(/\s*\[\[FAMILIA:[^\]]*\]\]/g,''), ls => idx.forEach(n => { const e = $('#fam' + n); if (ls[n-1] && e) ls[n-1].categoria = e.value }));
+    closeModal(); toast('✅ Familias guardadas') }catch(e){ toast('Error: ' + e.message, 5000) }
+}
+function resolverPunto(i){ const p = PUNTOS[i]; guardarLS('avisosCerrados', p.id); refrescarPuntos(); (p.id.startsWith('rev:') ? editAlbaran : p.id.startsWith('fam:') ? abrirFamilias : openAlbaran)(p.arg) }
+function abrirPuntos(){
+  $('#sheet').innerHTML = `<div class="sheet-h"><h3>ⓘ Puntos a resolver (${PUNTOS.length})</h3><button class="x" onclick="closeModal()">×</button></div><div class="sheet-b">
+    ${PUNTOS.map((p,i) => `<div class="pt"><b>${p.ic} ${esc(p.t)}</b><div class="small" style="margin:4px 0 8px">${esc(p.d)}</div>
+      <div class="row"><button class="btn sm" onclick="resolverPunto(${i})">Resolver</button><button class="btn sm ghost" onclick="descartarPunto(${i})">Descartar</button></div></div>`).join('') || '<div class="empty">Todo al día 🎉 No hay nada pendiente.</div>'}
+    ${LS('puntosOk').length ? `<a href="#" class="small" onclick="localStorage.puntosOk='[]';localStorage.avisosCerrados='[]';refrescarPuntos();abrirPuntos();return false">Restablecer los descartados</a>` : ''}</div>`;
+  $('#modal').classList.add('on');
+}
+
+/* ===================== ANÁLISIS FINANCIERO (PyG) ===================== */
+let PYG = null, PRE = { id:'', conc:'' }, PEXP = {};
+const CAT_BEBIDA = ['Bebidas','Vinos y licores'], CAT_OTROS = ['Limpieza','Menaje y desechables','Mantenimiento','Otros'];
+const grupoCat = c => CAT_BEBIDA.includes(c) ? 'bebida' : (!c || CAT_OTROS.includes(c)) ? 'otros' : 'comida';
+const dn = s => { const [y,m,d] = String(s).slice(0,10).split('-').map(Number); return Date.UTC(y,m-1,d)/864e5 };
+const dstr = n => new Date(n*864e5).toISOString().slice(0,10);
+const diasMes = ym => { const [y,m] = ym.split('-').map(Number); return new Date(Date.UTC(y,m,0)).getUTCDate() };
+const eur0 = n => (isFinite(n) ? n : 0).toLocaleString('es-ES',{style:'currency',currency:'EUR',maximumFractionDigits:0});
+const solap = (a,b,c,d) => Math.max(0, Math.min(b,d) - Math.max(a,c) + 1);
+const pf = n => dstr(n).slice(8) + '/' + dstr(n).slice(5,7);
+/** Periodos (semanas lunes-domingo o meses) que cubren el rango elegido; los extremos se recortan a las fechas pedidas. */
+function periodosRango(gran, d1, d2){
+  const a = dn(d1), b = dn(d2), out = [];
+  if (gran === 'sem'){ for (let lun = a - ((new Date(a*864e5).getUTCDay() + 6) % 7); lun <= b && out.length < 60; lun += 7){ const ini = Math.max(lun,a), fin = Math.min(lun+6,b); out.push({ ini, fin, label: ini === lun && fin === lun+6 ? 'Sem ' + pf(lun) : pf(ini) + '–' + pf(fin) }) } }
+  else { const d = new Date(a*864e5); let y = d.getUTCFullYear(), m = d.getUTCMonth();
+    for (; out.length < 60; m++){ const ms = Date.UTC(y,m,1)/864e5, me = Date.UTC(y,m+1,0)/864e5; if (ms > b) break; const ini = Math.max(ms,a), fin = Math.min(me,b);
+      out.push({ ini, fin, label:new Date(ms*864e5).toLocaleDateString('es-ES',{month:'short',year:'2-digit',timeZone:'UTC'}) + (ini > ms || fin < me ? '*' : '') }) } }
+  return out;
+}
+function pygPreset(p){
+  const hoy = dn(iso(new Date())), t = new Date(hoy*864e5), y = t.getUTCFullYear(), m = t.getUTCMonth(), lun = hoy - ((t.getUTCDay() + 6) % 7), U = (a,b) => Date.UTC(y,a,b)/864e5;
+  const r = { mes:[U(m,1), U(m+1,0)], mesant:[U(m-1,1), U(m,0)], '8s':[lun-49, lun+6], '6m':[U(m-5,1), U(m+1,0)], anio:[U(0,1), U(m+1,0)] }[p];
+  $('#gDesde').value = dstr(r[0]); $('#gHasta').value = dstr(r[1]);
+  if (p === '8s') $('#gGran').value = 'sem'; if (p === '6m' || p === 'anio') $('#gGran').value = 'mes';
+  renderPyG();
+}
+function calcPyG(per, locs){
+  const L = x => !locs.length || locs.includes(x);
+  const ok = new Set(DB.albaranes.filter(a => estadoDe(a) !== 'Por revisar' && !sinPyG(a)).map(a => a.id)), conLin = new Set(DB.lineas.map(l => l.id_albaran));
+  return per.map(p => {
+    const r = { ventas:0, comida:0, bebida:0, otros:0, personal:0, fijos:0, det:{ personal:{}, fijos:{} } };
+    for (const x of DB.premisas){ if (!L(x.local)) continue;
+      if ((x.tipo === 'venta' || x.tipo === 'compra') && x.desde){ const a = dn(x.desde), b = dn(x.hasta || x.desde); r[x.tipo === 'venta' ? 'ventas' : x.grupo === 'bebida' ? 'bebida' : 'comida'] += x.importe * solap(p.ini,p.fin,a,b) / (b-a+1) }
+      else if ((x.tipo === 'personal' || x.tipo === 'fijos') && x.mes){ const a = dn(x.mes + '-01'), dm = diasMes(x.mes); const v = x.importe * solap(p.ini,p.fin,a,a+dm-1) / dm; r[x.tipo] += v; if (v){ const c = x.concepto || 'Sin concepto'; r.det[x.tipo][c] = (r.det[x.tipo][c] || 0) + v } } }
+    for (const l of DB.lineas){ if (l._dup || !ok.has(l.id_albaran) || !L(l.local)) continue; const f = dn(l.fecha || '1970-01-01'); if (f >= p.ini && f <= p.fin) r[grupoCat(l.categoria)] += l.importe || 0 }
+    for (const a of DB.albaranes){ if (a._dup || !ok.has(a.id) || conLin.has(a.id) || !L(a.local) || CONC.links.get(a.id)?.L.length) continue; const f = dn(a.fecha); if (f >= p.ini && f <= p.fin) r.otros += a.base ?? a.total }
+    r.margen = r.ventas - r.comida - r.bebida; r.ebitda = r.margen - r.otros - r.personal - r.fijos; return r });
+}
+const FILAS = [['ventas','Ventas',1],['comida','Compras comida'],['bebida','Compras bebida'],['margen','Margen bruto',1],['otros','Otros aprovisionamientos'],['personal','Costes de personal'],['fijos','Gastos fijos'],['ebitda','EBITDA',1]];
+function pygTog(k){ PEXP[k] = !PEXP[k]; renderPyG() }
+function pygConc(k, i){ const c = PYG.cs[k][i]; PRE.conc = c; pygVista('pre'); $('#prFiltro').value = k; renderPre() }
+function renderPyG(){
+  if (!$('#gDesde').value || !$('#gHasta').value){ $('#gGran').value = 'mes'; return pygPreset('6m') }
+  const d1 = $('#gDesde').value, d2 = $('#gHasta').value;
+  if (d2 < d1){ $('#pygAviso').innerHTML = '<div class="banner err">La fecha "hasta" es anterior a "desde".</div>'; $('#pygTable').innerHTML = ''; return }
+  const per = periodosRango($('#gGran').value, d1, d2), R = calcPyG(per, sv('gLocal')), T = { det:{ personal:{}, fijos:{} } };
+  FILAS.forEach(([k]) => T[k] = R.reduce((s,r) => s + r[k], 0));
+  const cs = {}; ['personal','fijos'].forEach(k => { cs[k] = [...new Set(R.flatMap(r => Object.keys(r.det[k])))].sort(); cs[k].forEach(c => T.det[k][c] = R.reduce((s,r) => s + (r.det[k][c] || 0), 0)) });
+  PYG = { per, R, T, cs };
+  const cel = (v, vt, b, k) => `<td class="n">${b?'<b>':''}<span class="${k==='ebitda'?(v<0?'up':'down'):''}">${eur0(v)}</span>${b?'</b>':''}<div class="small muted">${vt ? num(v/vt*100,1) + ' %' : '—'}</div></td>`;
+  let h = `<tr><th>Concepto</th>${per.map(p => `<th class="n">${esc(p.label)}</th>`).join('')}<th class="n">Total</th></tr>`;
+  for (const [k,n,b] of FILAS){
+    const ex = k === 'fijos' || k === 'personal';
+    h += `<tr class="${b?'tot':''}"><td ${ex ? `class="tg" onclick="pygTog('${k}')"` : ''}>${ex ? (PEXP[k] ? '▾ ' : '▸ ') : ''}${n}</td>${R.map(r => cel(r[k], r.ventas, b, k)).join('')}${cel(T[k], T.ventas, b, k)}</tr>`;
+    if (ex && PEXP[k]) h += cs[k].length ? cs[k].map((c,i) => `<tr class="sub"><td onclick="pygConc('${k}',${i})" title="Ver y editar">${esc(c)} ✏️</td>${R.map(r => cel(r.det[k][c] || 0, r.ventas)).join('')}${cel(T.det[k][c], T.ventas)}</tr>`).join('')
+      : `<tr class="sub"><td colspan="${per.length + 2}">Sin ${k === 'fijos' ? 'gastos fijos' : 'costes'} en estas fechas. Añádelos en Premisas.</td></tr>`;
+  }
+  $('#pygTable').innerHTML = h;
+  const sinV = per.filter((p,i) => !R[i].ventas).map(p => p.label), sinP = per.filter((p,i) => !R[i].personal).map(p => p.label);
+  const nf = DB.albaranes.filter(a => famDe(a).length).length;
+  $('#pygAviso').innerHTML = (nf ? `<div class="banner">🏷 ${nf} albarán(es) con familia por elegir: sus productos pueden estar mal repartidos. <a href="#" onclick="abrirPuntos();return false">Resolver</a></div>` : '') + (per.length >= 60 ? '<div class="banner">Se muestran como máximo 60 periodos: acorta las fechas.</div>' : '') + ((sinV.length || sinP.length) ? `<div class="banner">⚠ ${sinV.length ? 'Sin ventas en: <b>' + esc(sinV.join(', ')) + '</b>. ' : ''}${sinP.length ? 'Sin costes de personal en: <b>' + esc(sinP.join(', ')) + '</b>. ' : ''}El EBITDA de esos periodos no es fiable: <a href="#" onclick="pygVista('pre');return false">añadir premisas</a>.</div>` : '')
+    + (per.some(p => p.label.endsWith('*')) ? '<div class="small muted" style="margin-bottom:8px">* Periodo parcial: recortado a las fechas elegidas (los costes mensuales se reparten por días).</div>' : '');
+}
+function exportPyG(){
+  if (!PYG) return; const { per, R, T } = PYG;
+  const rows = FILAS.map(([k,n]) => { const o = { Concepto:n }; per.forEach((p,i) => { o[p.label + ' €'] = Math.round(R[i][k]); o[p.label + ' %'] = R[i].ventas ? Math.round(R[i][k]/R[i].ventas*1000)/10 : null }); o['Total €'] = Math.round(T[k]); o['Total %'] = T.ventas ? Math.round(T[k]/T.ventas*1000)/10 : null; return o });
+  xlsx([['PyG', rows]], `PyG_${stamp()}.xlsx`);
+}
+function pygVista(v){
+  $('#vPyg').style.display = v === 'pyg' ? '' : 'none'; $('#vPre').style.display = v === 'pre' ? '' : 'none';
+  $('#sgPyg').classList.toggle('on', v === 'pyg'); $('#sgPre').classList.toggle('on', v === 'pre');
+  if (v === 'pre') renderPre(); else renderPyG();
+}
+function prTipoCambio(){
+  const t = $('#prTipo').value, V = { venta:['prDesde','prHasta'], compra:['prDesde','prGrupo','prSem','prConc'], personal:['prMes','prConc'], fijos:['prMes','prConc'] }[t];
+  ['prDesde','prHasta','prMes','prConc','prGrupo','prSem'].forEach(i => $('#' + i).parentElement.style.display = V.includes(i) ? '' : 'none');
+  $('#prHint').style.display = t === 'compra' ? '' : 'none';
+  $('#prDesde').previousElementSibling.textContent = t === 'compra' ? 'Fecha de la compra' : 'Desde';
+  $('#prConc').previousElementSibling.textContent = t === 'compra' ? 'Producto' : 'Concepto';
+}
+function resetPre(){ PRE.id = ''; $('#prTit').textContent = 'Añadir premisa'; ['prDesde','prHasta','prImp','prConc','prNota'].forEach(i => $('#'+i).value = ''); $('#prSem').value = 1; prTipoCambio() }
+function renderPre(){
+  keepOpts($('#prLocal'), DB.locales); prTipoCambio();
+  if (!$('#prMes').value) $('#prMes').value = iso(new Date()).slice(0,7);
+  const ft = $('#prFiltro').value, T = { venta:'Ventas', compra:'Compra', personal:'Personal', fijos:'Gasto fijo' };
+  const l = DB.premisas.filter(x => (!ft || x.tipo === ft) && (!PRE.conc || (x.concepto || 'Sin concepto') === PRE.conc)).sort((a,b) => String(b.desde || b.mes).localeCompare(String(a.desde || a.mes))).slice(0,100);
+  $('#prList').innerHTML = (PRE.conc ? `<button class="btn sm sec" onclick="PRE.conc='';renderPre()">Concepto: ${esc(PRE.conc)} ✕</button>` : '') + l.map(x => `<div class="item" style="cursor:default"><div class="grow"><div class="t">${T[x.tipo]} · ${x.tipo === 'venta' ? fdate(x.desde) + (x.hasta && x.hasta !== x.desde ? ' → ' + fdate(x.hasta) : '') : x.tipo === 'compra' ? esc(x.grupo || 'comida') + ' · ' + esc(x.concepto || '') + ' · ' + (x.semanas || 1) + ' sem desde ' + fdate(x.desde) : esc(x.mes) + (x.concepto ? ' · ' + esc(x.concepto) : '')}</div>
+    <div class="small muted">${esc(x.local)}${x.nota ? ' · ' + esc(x.nota) : ''}</div></div><div class="amt">${eur(x.importe)}</div>
+    ${x.tipo === 'personal' || x.tipo === 'fijos' ? `<button class="btn sm ghost" title="Copiar al mes siguiente" onclick="copiarPre('${esc(x.id)}')">⧉</button>` : ''}<button class="btn sm ghost" onclick="editPre('${esc(x.id)}')">✏️</button><button class="btn sm danger" onclick="delPre('${esc(x.id)}')">🗑</button></div>`).join('') || '<div class="empty">Aún no hay premisas. Añade las ventas y los costes del mes.</div>';
+}
+function editPre(id){
+  const x = DB.premisas.find(p => p.id === id); if (!x) return; PRE.id = id; $('#prTit').textContent = 'Editar premisa';
+  $('#prTipo').value = x.tipo; $('#prLocal').value = x.local; $('#prDesde').value = x.desde || ''; $('#prHasta').value = x.hasta && x.hasta !== x.desde ? x.hasta : '';
+  $('#prMes').value = x.mes || ''; $('#prGrupo').value = x.grupo || 'comida'; $('#prSem').value = x.semanas || 1; $('#prConc').value = x.concepto || ''; $('#prImp').value = x.importe; $('#prNota').value = x.nota || ''; prTipoCambio(); window.scrollTo(0,0);
+}
+async function copiarPre(id){
+  const x = DB.premisas.find(p => p.id === id); if (!x) return;
+  const [y,m] = x.mes.split('-').map(Number), mes = new Date(Date.UTC(y,m,1)).toISOString().slice(0,7);
+  if (DB.premisas.some(p => p.tipo === x.tipo && p.local === x.local && p.mes === mes && (p.concepto||'') === (x.concepto||''))){ toast('Ya existe en ' + mes); return }
+  try{ await apiPost({ action:'savePrem', premisa:{ ...x, id:'', mes } }); await loadData(true); renderPre(); toast('✅ Copiado a ' + mes) }catch(e){ toast('Error: ' + e.message, 5000) }
+}
+async function delPre(id){ if (!confirm('¿Eliminar esta premisa?')) return; try{ await apiPost({ action:'delPrem', id }); await loadData(true); renderPre() }catch(e){ toast('Error: ' + e.message, 5000) } }
+async function savePre(){
+  const t = $('#prTipo').value, p = { id:PRE.id, tipo:t, local:$('#prLocal').value, importe:pnum($('#prImp').value), concepto:$('#prConc').value.trim(), nota:$('#prNota').value.trim() };
+  if (p.importe == null){ toast('Pon el importe'); return }
+  if (t === 'compra'){ p.desde = $('#prDesde').value; p.grupo = $('#prGrupo').value; p.semanas = Math.max(1, Math.round(pnum($('#prSem').value) || 1)); p.mes = '';
+    if (!p.desde){ toast('Pon la fecha de la compra'); return } if (!p.concepto){ toast('Pon el producto'); return }
+    const a0 = dn(p.desde), lun = a0 - ((new Date(a0*864e5).getUTCDay() + 6) % 7); p.desde = dstr(lun); p.hasta = dstr(lun + 7*p.semanas - 1) }
+  else if (t === 'venta'){ p.desde = $('#prDesde').value; p.hasta = $('#prHasta').value || p.desde; p.mes = '';
+    if (!p.desde){ toast('Pon la fecha'); return } if (p.hasta < p.desde){ toast('"Hasta" es anterior a "Desde"'); return } }
+  else { p.mes = $('#prMes').value; p.desde = p.hasta = ''; if (!p.mes){ toast('Pon el mes'); return } if (t === 'fijos' && !p.concepto){ toast('Pon el concepto del gasto fijo (p. ej. alquiler)'); return } }
+  const solapa = t !== 'compra' && DB.premisas.find(x => x.id !== p.id && x.tipo === t && x.local === p.local && (t === 'venta' ? (x.desde <= p.hasta && (x.hasta || x.desde) >= p.desde) : x.mes === p.mes && (x.concepto||'') === p.concepto));
+  if (solapa && !confirm('Ya hay una premisa igual en ese periodo (' + eur(solapa.importe) + '). Si guardas, se sumarán. ¿Guardar igualmente?')) return;
+  try{ await apiPost({ action:'savePrem', premisa:p }); await loadData(true); toast('✅ Guardado');
+    const sig = t === 'venta' && p.hasta === p.desde ? dstr(dn(p.desde) + 1) : ''; resetPre(); if (sig) $('#prDesde').value = sig; renderPre();
+  }catch(e){ toast(/desconocida/i.test(e.message) ? 'Falta actualizar el código de Apps Script (Nueva versión)' : 'Error: ' + e.message, 6000) }
+}
+
+/* ===================== TITÁN (ayuda) y TITÁN DEV (cambios en situ) ===================== */
+const AYUDA = `Menú inferior (móvil): Escanear, PyG, Análisis, Albaranes, Productos, Ajustes. Arriba a la derecha: ⬇︎ descargar base de datos, ⓘ puntos a resolver, 💬 Titán.
+ESCANEAR: elige el local que recibe la mercancía, pulsa ESCANEAR ALBARÁN y haz la foto (o sube de galería; "Añadir página" si tiene varias hojas). Tras unos segundos se lee con IA y, si cuadra (proveedor, fecha, productos = base, sin duplicados), se guarda solo. Si algo no cuadra se guarda como POR REVISAR: en Albaranes, filtro Estado, ábrelo, compara con la foto, corrige y pulsa Revisado. "Introducir a mano" permite teclearlo. Sin conexión, el albarán queda en el móvil y se sube solo.
+ALBARANES: lista con filtros de selección múltiple (local, tipo, estado), búsqueda y fechas. Tocar uno abre el detalle: editar, ver foto en Drive o eliminar.
+CONCILIACIÓN: albaranes y facturas se emparejan (por los nº de albarán que cita la factura o por importe) para no duplicar el gasto. En una factura se puede escribir a mano los albaranes que cita. Si faltan albaranes, sale un aviso en ⓘ.
+ⓘ PUNTOS A RESOLVER: avisos acumulados (por revisar, facturas que no cuadran, albaranes sin factura, posibles duplicados). Resolver abre el documento; Descartar lo oculta en ese móvil.
+PRODUCTOS: precio medio, último precio y variación por producto y proveedor. ANÁLISIS: gasto por local, proveedor y categoría, y alertas de subida de precio.
+PyG: cuenta de resultados por meses o semanas entre dos fechas (Fecha desde/hasta y atajos). Filas: Ventas, Compras comida, Compras bebida, Margen bruto, Otros aprovisionamientos, Costes de personal, Gastos fijos, EBITDA, con % sobre ventas. Al pulsar ▸ Gastos fijos o ▸ Costes de personal se despliega el detalle por concepto; tocar un concepto lleva a editarlo. Las compras salen de los escaneos, sin IVA.
+PREMISAS (dentro de PyG): ventas diarias o semanales (Desde/Hasta), compras manuales de alimentación (comida o bebida) repartidas en las semanas que cubren, costes de personal y gastos fijos mensuales (con concepto, p. ej. alquiler). Se pueden editar con ✏️, borrar con 🗑 y copiar al mes siguiente con ⧉. Los costes mensuales se reparten por días en las semanas.
+PyG Y ALBARANES: en un albarán, el botón "🚫 No aplicar en PyG" (también tras escanear) lo deja fuera de la PyG y "↩ Volver a aplicar" lo recupera. Si la IA duda de la familia (comida, bebida u otros) de algún producto, pregunta y eliges tú; si no lo resuelves queda como aviso en ⓘ. La app recuerda tu elección para ese producto.
+AJUSTES: descargar Excel/CSV, guardado automático, conexión con Google Drive.`;
+const TIT = { msgs: (() => { try{ return JSON.parse(localStorage.titanChat || '[]') }catch(e){ return [] } })(), busy:false };
+const fmtT = t => esc(t).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/\[\[ir:(\w+)\]\]/g, (_,k) => `<div><button class="btn sm" onclick="closeModal();go('${k}')">Ir a ${k}</button></div>`);
+function bubbleT(m){ return `<div class="tb ${m.r === 'user' ? 'u' : 't'}">${fmtT(m.t)}</div>` }
+function renderTitan(){
+  const ms = TIT.msgs.length ? TIT.msgs : [{ r:'model', t:'¡Hola! Soy Titán 👋 Pregúntame cómo se maneja cualquier parte de la app.' }];
+  $('#sheet').innerHTML = `<div class="sheet-h"><h3>💬 Titán</h3><button class="x" onclick="closeModal()">×</button></div>
+  <div class="sheet-b"><div id="tMsgs">${ms.map(bubbleT).join('')}</div>
+  <div class="row" style="margin-top:10px;flex-wrap:nowrap"><input id="tIn" class="grow" placeholder="Escribe tu duda…" onkeydown="if(event.key==='Enter')titanEnviar()"><button class="btn" onclick="titanEnviar()">Enviar</button></div></div>`;
+  const m = $('#tMsgs'); m.scrollTop = m.scrollHeight;
+}
+function abrirTitan(){ renderTitan(); $('#modal').classList.add('on') }
+const errT = e => /desconocida/i.test(e.message) ? 'Falta actualizar el código de Apps Script (Nueva versión).' : e.message;
+function guardarChatT(){ localStorage.titanChat = JSON.stringify(TIT.msgs.slice(-20).map(({r,t}) => ({r,t}))) }
+async function titanEnviar(){
+  const t = $('#tIn').value.trim(); if (!t || TIT.busy) return;
+  if (!CFG.ready){ toast('Conecta la app primero (⚙ Ajustes)'); return }
+  TIT.msgs.push({ r:'user', t }); TIT.busy = true; renderTitan(); $('#tMsgs').insertAdjacentHTML('beforeend', '<div class="tb t muted">Titán está pensando…</div>');
+  try{ const r = await apiPost({ action:'chat', mensajes:TIT.msgs.slice(-10).map(({r,t}) => ({r,t})), ayuda:AYUDA }); TIT.msgs.push({ r:'model', t:r.respuesta || '…' }) }
+  catch(e){ TIT.msgs.push({ r:'model', t:'⚠ ' + errT(e) }) }
+  TIT.busy = false; guardarChatT(); renderTitan();
+}
+
+/* ===================== DESPLEGABLES MULTIOPCIÓN ===================== */
+const MS_IDS = ['gLocal','aLocal','aTipo','aEstado','pCat','pLocal','fLocal','fProv','fCat'];
+/** Valores marcados de un filtro (lista vacía = sin filtrar = "todos"). */
+const sv = id => [...$('#'+id).selectedOptions].map(o => o.value).filter(Boolean);
+function msLabel(sel){
+  const on = [...sel.options].filter(o => o.value && o.selected);
+  return on.length === 0 ? (sel.options[0]?.value === '' ? sel.options[0].text : 'Todos') : on.length === 1 ? on[0].value : on.length + ' seleccionados';
+}
+function msRender(sel){
+  if (!sel.multiple) return;
+  let w = sel._ms;
+  if (!w){ w = sel._ms = document.createElement('div'); sel.after(w); sel.style.display = 'none'; w.onclick = e => e.stopPropagation() }
+  const items = [...sel.options].filter(o => o.value), n = items.filter(o => o.selected).length;
+  w.className = 'ms' + (w.classList.contains('on') ? ' on' : '') + (n ? ' has' : '');
+  w.innerHTML = `<button type="button" onclick="msToggle('${sel.id}')"><span>${esc(msLabel(sel))}</span></button>
+    <div class="pop"><div class="acts"><button type="button" class="btn sm ghost" onclick="msAll('${sel.id}',false)">✕ Quitar filtro</button></div>
+    ${items.map((o,i) => `<label><input type="checkbox" ${o.selected?'checked':''} onchange="msPick('${sel.id}',${i},this.checked)">${esc(o.value)}</label>`).join('') || '<div class="small muted" style="padding:8px">Sin opciones</div>'}</div>`;
+}
+function msFire(sel){ const w = sel._ms; w.classList.toggle('has', sv(sel.id).length > 0); w.querySelector('button span').textContent = msLabel(sel); sel.dispatchEvent(new Event('change')) }
+function msPick(id, i, on){ const sel = $('#'+id); [...sel.options].filter(o => o.value)[i].selected = on; msFire(sel) }
+function msAll(id, on){ const sel = $('#'+id); [...sel.options].forEach(o => o.selected = on && !!o.value); msRender(sel); msFire(sel) }
+function msToggle(id){
+  const w = $('#'+id)._ms, abrir = !w.classList.contains('on');
+  document.querySelectorAll('.ms.on').forEach(m => m.classList.remove('on'));
+  w.classList.toggle('on', abrir);
+  const p = w.querySelector('.pop'); p.style.left = ''; p.style.right = '';
+  if (abrir && p.getBoundingClientRect().right > innerWidth - 8){ p.style.left = 'auto'; p.style.right = '0' }
+}
+document.addEventListener('click', () => document.querySelectorAll('.ms.on').forEach(m => m.classList.remove('on')));
+function setMs(id, vals){ const s = $('#'+id); [...s.options].forEach(o => o.selected = vals.includes(o.value)); msRender(s); s.dispatchEvent(new Event('change')) }
+function initMs(){ MS_IDS.forEach(id => { const s = $('#'+id); s.multiple = true; [...s.options].forEach(o => o.selected = false); msRender(s) }) }
+
 /* ===================== ARRANQUE ===================== */
 (async function init(){
+  initMs();
   fillSelects();
   const t = localStorage.tab || 'escanear';
   document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b.dataset.t === t));
