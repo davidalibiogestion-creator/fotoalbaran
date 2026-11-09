@@ -256,7 +256,7 @@ function gateSalir(){ localStorage.removeItem('alibioSesion'); sessionStorage.re
 
 <main>
   <div id="setupBanner" class="banner" style="display:none">
-    <b>App sin conectar a Google Drive.</b> <a href="#" onclick="abrirAsistente();return false">Abre el asistente de conexión</a>: te guía paso a paso (unos 5 minutos).
+    <b>App sin conectar a Google Drive.</b> <a href="#" onclick="abrirConexion();return false">Conéctala con el enlace y la contraseña</a> que te haya pasado el administrador.
   </div>
   <div id="errBanner" class="banner err" style="display:none"></div>
 
@@ -887,7 +887,7 @@ async function loadData(silent){
     buildProducts(); fillSelects(); renderAll(); refrescarPuntos();
     if (CFG.ready) procesarCola();
   }catch(e){
-    setLive('err','Sin conexión'); if (!silent){ const b=$('#errBanner'); b.innerHTML='<b>No se pudo conectar:</b> '+esc(e.message)+' — revisa ⚙ Ajustes.'; b.style.display='block' }
+    setLive('err','Sin conexión'); if (!silent){ const b=$('#errBanner'); b.innerHTML='<b>No se pudo conectar:</b> '+esc(e.message)+' — revisa ⚙ Ajustes.'+(/failed to fetch|unexpected token|networkerror|load failed/i.test(e.message) ? '<br>Si esto ocurre desde otra cuenta de Google o desde fuera: el Apps Script debe estar publicado con <b>Quién tiene acceso: Cualquier usuario</b> (Implementar → Gestionar implementaciones → ✏️ → Nueva versión).' : ''); b.style.display='block' }
   }
 }
 
@@ -1610,6 +1610,26 @@ async function copiar(txt, msg){
 function descargar(nombre, txt, tipo){ const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([txt], { type:tipo || 'text/plain' })); a.download = nombre; a.click() }
 function hecho(n, v){ ASI.hechos[n] = v; ASI.ver = null; guardarAsi(); renderAsistente() }
 
+function abrirConexion(){
+  $('#sheet').innerHTML = `<div class="sheet-h"><h3>🔗 Conectar</h3><button class="x" onclick="closeModal()">×</button></div><div class="sheet-b">
+    <p class="small muted" style="margin-top:0">Pega el enlace y la contraseña que te ha pasado el administrador. Solo hace falta una vez en este dispositivo.</p>
+    <label class="f">Enlace (termina en /exec)</label><input id="cnUrl" placeholder="https://script.google.com/macros/s/…/exec" value="${esc(CFG.url)}">
+    <label class="f" style="margin-top:10px">Contraseña (clave de acceso)</label><input id="cnKey" type="password" autocomplete="off" value="${esc(CFG.key)}">
+    <button class="btn" style="width:100%;margin-top:12px" onclick="conectarRapido()">Conectar</button><div id="cnRes" style="margin-top:10px"></div>
+    <p class="small muted" style="margin-top:14px"><a href="#" onclick="abrirAsistente();return false">Soy el administrador: instalar o actualizar el servidor</a></p></div>`;
+  $('#modal').classList.add('on');
+}
+async function conectarRapido(){
+  const url = $('#cnUrl').value.trim(), key = $('#cnKey').value.trim(), out = $('#cnRes'), msg = (c, t) => out.innerHTML = `<div class="cuenta ${c}">${t}</div>`;
+  if (!/^https:\/\/script\.google\.com\/macros\/s\/.+\/exec$/.test(url)) return msg('mal', 'El enlace debe empezar por https://script.google.com/macros/s/ y terminar en /exec.');
+  if (!key) return msg('mal', 'Escribe la contraseña.');
+  msg('nd', 'Probando…');
+  try{ const u = new URL(url); u.searchParams.set('action','ping'); u.searchParams.set('key', key); const j = await (await fetch(u, { redirect:'follow' })).json();
+    if (!j.ok) return msg('mal', /clave/i.test(j.error) ? 'La contraseña no es correcta.' : esc(j.error));
+  }catch(e){ return msg('mal', 'No responde. El administrador debe publicar el Apps Script con acceso <b>"Cualquier usuario"</b> (Implementar → Gestionar implementaciones → ✏️ → Nueva versión).') }
+  localStorage.apiUrl = url; localStorage.apiKey = key; CUENTA = { ok:null, email:'' };
+  await loadData(); startPolling(); closeModal(); toast('✅ Conectado');
+}
 function abrirAsistente(){ renderAsistente(); $('#modal').classList.add('on') }
 function renderAsistente(){
   const H = ASI.hechos, actual = ASI.ver || [1,2,3,4,5].find(n => !H[n]) || 6;
@@ -2219,7 +2239,7 @@ function initMs(){ MS_IDS.forEach(id => { const s = $('#'+id); s.multiple = true
   const p = localStorage.preset ?? 'mes';
   if (p){ setPresetSilent(p) }
   await loadData(); startPolling();
-  if (!CFG.url) abrirAsistente();
+  if (!CFG.url) abrirConexion();
 })();
 function setPresetSilent(p){
   const t = new Date(), y = t.getFullYear(), m = t.getMonth(); let d1='', d2=iso(t);
