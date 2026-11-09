@@ -2239,7 +2239,7 @@ function initMs(){ MS_IDS.forEach(id => { const s = $('#'+id); s.multiple = true
   const p = localStorage.preset ?? 'mes';
   if (p){ setPresetSilent(p) }
   await loadData(); startPolling();
-  if (!CFG.url) abrirConexion();
+  if (!CFG.url || !CFG.key) abrirConexion();
 })();
 function setPresetSilent(p){
   const t = new Date(), y = t.getFullYear(), m = t.getMonth(); let d1='', d2=iso(t);
